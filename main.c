@@ -248,12 +248,11 @@ uint8_t *get_data_blocks_from_inode(struct ext4_inode *inode)
 
             assert(ext_header->eh_entries == 1);
             assert(extent->ee_block == 0);
-            assert(extent->ee_len == 1);
-            assert(inode->i_size_lo <= get_block_size());
+            assert(inode->i_size_lo <= BLOCKS2BYTES(extent->ee_len));
             assert(extent->ee_start_hi == 0);
 
-            blocks = malloc_blocks(1);
-            read_disk_block(extent->ee_start_lo, blocks);
+            blocks = malloc_blocks(extent->ee_len);
+            read_disk_blocks(extent->ee_start_lo, extent->ee_len, blocks);
         } else {
             int n_extents;
             struct ext4_extent_idx *ext_idx = get_extent_idx_from_inode(inode, 0);
@@ -375,12 +374,24 @@ int main(int argc, char *argv[])
     assert(lookup_path("/.", NULL) == 0);
     assert(lookup_path("/dir1/dir2/dir3/file", NULL) == 0);
 
-    struct ext4_inode *inode;
-    uint8_t *file_data;
+    struct ext4_inode *inode = NULL;
+    uint8_t *file_data = NULL;
 
-    /* TODO: Fail assert(extent->ee_len == 1) */
-    //assert(lookup_path("/Documentation/CodingStyle", &inode) == 0);
-    //assert(lookup_path("/Documentation/zorro.txt", &inode) == 0);
+    assert(lookup_path("/Documentation/zorro.txt", &inode) == 0);
+    file_data = get_data_blocks_from_inode(inode);
+    for (int i = 0; i < inode->i_size_lo; i++) {
+        putchar((char)file_data[i]);
+    }
+    E4F_FREE(file_data);
+    E4F_FREE(inode);
+
+    assert(lookup_path("/Documentation/CodingStyle", &inode) == 0);
+    file_data = get_data_blocks_from_inode(inode);
+    for (int i = 0; i < inode->i_size_lo; i++) {
+        putchar((char)file_data[i]);
+    }
+    E4F_FREE(file_data);
+    E4F_FREE(inode);
 
     assert(lookup_path("/Documentation/mips/00-INDEX", &inode) == 0);
     file_data = get_data_blocks_from_inode(inode);
