@@ -151,6 +151,17 @@ uint8_t get_path_token_len(char *path)
     return len;
 }
 
+struct ext4_extent_header *get_extent_header_from_inode(struct ext4_inode *inode)
+{
+    return (struct ext4_extent_header *)inode->i_block;
+}
+
+struct ext4_extent *get_extent_from_inode(struct ext4_inode *inode, int n)
+{
+    return (struct ext4_extent *)(((char *)inode->i_block) + sizeof(struct ext4_extent_header)
+                                                           + n * sizeof(struct ext4_extent));
+}
+
 int lookup_path(char *path, struct ext4_inode **ret_inode)
 {
     struct ext4_dir_entry_2 **dir_entries;
@@ -175,10 +186,24 @@ int lookup_path(char *path, struct ext4_inode **ret_inode)
         /* FIXME: We only check first block, assuming the dir entry is not too big.
          *        i_blocks_count_lo can be used */
         if (lookup_inode->i_flags & EXT4_EXTENTS_FL) {
-            struct ext4_extent_header *ext_header = (struct ext4_extent_header *)lookup_inode->i_block;
+            struct ext4_extent_header *ext_header = get_extent_header_from_inode(lookup_inode);
 
             assert(ext_header->eh_magic == EXT4_EXT_MAGIC);
-            assert(0);          /* Still don't know how to deal with them */
+            if (ext_header->eh_depth == 0) {
+                /* These assertions are not real, of course.  These parameters
+                 * could be almost anything.  We are trying to handle the easy
+                 * case for now. */
+                assert(ext_header->eh_entries == 1);
+                struct ext4_extent *extent = get_extent_from_inode(lookup_inode, 0);
+
+                assert(extent->ee_block == 0);
+                assert(extent->ee_len == 1);
+                assert(extent->ee_start_hi == 0);
+
+                dir_entries = get_all_directory_entries(extent->ee_start_lo, lookup_inode->i_size_lo, &n_entries);
+            } else {
+                assert(0);          /* Still don't know how to deal with them */
+            }
         } else {
             dir_entries = get_all_directory_entries(lookup_inode->i_block[0], lookup_inode->i_size_lo, &n_entries);
         }
