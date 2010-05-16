@@ -23,4 +23,7 @@ run:
 	valgrind ./ext4fuse ext4fs.raw
 
 clean:
-	rm -f *.o ext4fuse ext4fs.raw ext4fsr.raw
+	rm -f *.o ext4fuse
+
+mrproper: clean
+	rm -f ext4fs.raw ext4fsr.raw

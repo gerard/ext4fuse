@@ -35,7 +35,7 @@
 #define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
-#define E4F_DEBUG(format, ...)      fprintf(stderr, "[%s:%d] " format "\n"  \
+#define E4F_DEBUG(format, ...)      fprintf(stdout, "[%s:%d] " format "\n"  \
                                                   , __PRETTY_FUNCTION__     \
                                                   , __LINE__, ##__VA_ARGS__)
 
@@ -276,6 +276,8 @@ uint8_t *get_data_blocks_from_inode(struct ext4_inode *inode)
                 read_disk_blocks(extents[i].ee_start_lo, extents[i].ee_len, blocks + BLOCKS2BYTES(cur_block));
                 cur_block += extents[i].ee_len;
             }
+
+            E4F_FREE(extents);
         }
     } else {
         assert(inode->i_size_lo <= get_block_size());
@@ -314,6 +316,7 @@ int lookup_path(char *path, struct ext4_inode **ret_inode)
 
         lookup_blocks = get_data_blocks_from_inode(lookup_inode);
         dir_entries = get_all_directory_entries(lookup_blocks, lookup_inode->i_size_lo, &n_entries);
+        if (lookup_inode != root_inode) E4F_FREE(lookup_inode);
 
         int i;
         for (i = 0; i < n_entries; i++) {
@@ -331,12 +334,15 @@ int lookup_path(char *path, struct ext4_inode **ret_inode)
             }
         }
         E4F_FREE(lookup_blocks);
+        E4F_FREE(dir_entries);
 
         /* Couldn't find the entry at all */
         if (i == n_entries) return -ENOENT;
     } while((path = strchr(path, '/')));
 
-    *ret_inode = lookup_inode;
+    if (ret_inode) *ret_inode = lookup_inode;
+    else E4F_FREE(lookup_inode);
+
     return 0;
 }
 
@@ -365,11 +371,10 @@ int main(int argc, char *argv[])
 
     root_inode = get_inode(2);
 
-    struct ext4_inode *test_inode;
-    assert(lookup_path("/lost+found", &test_inode) == 0);
-    assert(lookup_path("/.", &test_inode) == 0);
-    assert(lookup_path("/dir1/dir2/dir3/file", &test_inode) == 0);
-    assert(lookup_path("/Documentation/mips/00-INDEX", &test_inode) == 0);
+    assert(lookup_path("/lost+found", NULL) == 0);
+    assert(lookup_path("/.", NULL) == 0);
+    assert(lookup_path("/dir1/dir2/dir3/file", NULL) == 0);
+    assert(lookup_path("/Documentation/mips/00-INDEX", NULL) == 0);
 
     E4F_DEBUG("Done");
 
