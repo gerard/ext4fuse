@@ -6,7 +6,7 @@ ext4fuse: main.o
 
 fs:
 	dd if=/dev/zero of=ext4fs.raw bs=128 count=$$((1024 * 1024))
-	mke2fs -t ext4 ext4fs.raw
+	mke2fs -F -t ext4 ext4fs.raw
 	mkdir t
 	sudo mount -o loop ext4fs.raw t/
 	mkdir -p t/dir1/dir2/dir3
