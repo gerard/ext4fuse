@@ -11,6 +11,7 @@ fs:
 	sudo mount -o loop ext4fs.raw t/
 	mkdir -p t/dir1/dir2/dir3
 	touch t/dir1/dir2/dir3/file
+	cp -a ~/src/linux-2.6/Documentation t/
 	sudo umount t/
 	rmdir t
 
@@ -19,7 +20,7 @@ fs-random:
 	mke2fs -t ext4 ext4fsr.raw
 
 run:
-	./ext4fuse ext4fs.raw
+	valgrind ./ext4fuse ext4fs.raw
 
 clean:
 	rm -f *.o ext4fuse ext4fs.raw ext4fsr.raw
