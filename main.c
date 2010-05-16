@@ -35,7 +35,7 @@
 #define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
-#define E4F_DEBUG(format, ...)      fprintf(stdout, "[%s:%d] " format "\n"  \
+#define E4F_DEBUG(format, ...)      fprintf(stderr, "[%s:%d] " format "\n"  \
                                                   , __PRETTY_FUNCTION__     \
                                                   , __LINE__, ##__VA_ARGS__)
 
@@ -374,9 +374,21 @@ int main(int argc, char *argv[])
     assert(lookup_path("/lost+found", NULL) == 0);
     assert(lookup_path("/.", NULL) == 0);
     assert(lookup_path("/dir1/dir2/dir3/file", NULL) == 0);
-    assert(lookup_path("/Documentation/mips/00-INDEX", NULL) == 0);
 
-    E4F_DEBUG("Done");
+    struct ext4_inode *inode;
+    uint8_t *file_data;
+
+    /* TODO: Fail assert(extent->ee_len == 1) */
+    //assert(lookup_path("/Documentation/CodingStyle", &inode) == 0);
+    //assert(lookup_path("/Documentation/zorro.txt", &inode) == 0);
+
+    assert(lookup_path("/Documentation/mips/00-INDEX", &inode) == 0);
+    file_data = get_data_blocks_from_inode(inode);
+    for (int i = 0; i < inode->i_size_lo; i++) {
+        putchar((char)file_data[i]);
+    }
+    E4F_FREE(file_data);
+    E4F_FREE(inode);
 
     return EXIT_SUCCESS;
 }
