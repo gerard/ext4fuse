@@ -1,7 +1,7 @@
 CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=22 -std=gnu99 -g3
 LDFLAGS += $(shell pkg-config fuse --libs)
 
-ext4fuse: main.o fuse-main.o
+ext4fuse: e4flib.o fuse-main.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 fs:
