@@ -35,10 +35,10 @@
 #define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
-#if 1
-#define E4F_DEBUG(format, ...)      fprintf(stderr, "[%s:%d] " format "\n"  \
-                                                  , __PRETTY_FUNCTION__     \
-                                                  , __LINE__, ##__VA_ARGS__)
+#ifndef NDEBUG
+#define E4F_DEBUG(format, ...)      fprintf(logfile_fd, "[%s:%d] " format "\n"  \
+                                                      , __PRETTY_FUNCTION__     \
+                                                      , __LINE__, ##__VA_ARGS__)
 #else
 #define E4F_DEBUG(format, ...)      do { } while(0)
 #endif
@@ -47,6 +47,7 @@ struct ext4_super_block *ext4_sb;
 struct ext4_group_desc **ext4_gd_table;
 struct ext4_inode *root_inode;
 int fd;
+FILE *logfile_fd = NULL;
 
 /* NOTE: We just suppose this runs on LE machines! */
 
@@ -365,6 +366,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
 int e4flib_initialize(char *fs_file)
 {
+    logfile_fd = stderr;
     fd = open(fs_file, O_RDONLY);
     if (fd == -1) {
         perror("open");
@@ -383,6 +385,19 @@ int e4flib_initialize(char *fs_file)
 
     root_inode = get_inode(2);
 
+    return 0;
+}
+
+int e4flib_logfile(const char *logfile)
+{
+    FILE *lf_fd = fopen(logfile, "w");
+    if (lf_fd == NULL) {
+        perror("open");
+        return -1;
+    }
+
+    setbuf(lf_fd, NULL);
+    logfile_fd = lf_fd;
     return 0;
 }
 /*

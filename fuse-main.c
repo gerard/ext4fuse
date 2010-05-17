@@ -110,6 +110,8 @@ static struct fuse_operations e4f_ops = {
 
 int main(int argc, char *argv[])
 {
+    char logfile[256];
+
     if (argc < 2) {
         printf("I need one filesystem to mount\n");
     }
@@ -117,6 +119,9 @@ int main(int argc, char *argv[])
     if (e4flib_initialize(argv[1]) < 0) {
         printf("Failed to initialize ext4fuse\n");
     }
+
+    snprintf(logfile, 255, "%s/%s", getenv("HOME"), ".ext4fuse.log");
+    e4flib_logfile(logfile);
 
     argc--;
     argv[1] = argv[2];
