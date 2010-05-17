@@ -44,6 +44,7 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
 
     stbuf->st_mode = inode->i_mode;
     stbuf->st_nlink = inode->i_links_count;
+    stbuf->st_size = inode->i_size_lo;
 
     e4flib_free_inode(inode);
 
@@ -87,16 +88,26 @@ static int e4f_open(const char *path, struct fuse_file_info *fi)
 static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
                     struct fuse_file_info *fi)
 {
-    const char *test_string = "You are testing ext4fuse.  Glitches expected!\n";
-    size_t len = strlen(test_string);
+    struct ext4_inode *inode;
+    uint8_t *data;
 
-    if (offset < len) {
-        if (offset + size > len)
-            size = len - offset;
-        memcpy(buf, test_string + offset, size);
+    int ret = e4flib_lookup_path(path, &inode);
+    if (ret < 0) return ret;
+
+    data = e4flib_get_data_blocks_from_inode(inode);
+
+    E4F_DEBUG("Reading %zx +%zx bytes from %s\n", offset, size, path);
+
+    if (offset < inode->i_size_lo) {
+        if (offset + size > inode->i_size_lo)
+            size = inode->i_size_lo - offset;
+        memcpy(buf, data + offset, size);
     } else {
         size = 0;
     }
+
+    free(data);
+    e4flib_free_inode(inode);
 
     return size;
 }

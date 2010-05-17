@@ -30,18 +30,11 @@
 #include <errno.h>
 
 #include "ext4.h"
+#include "e4flib.h"
 
 #define BOOT_SECTOR_SIZE            0x400
 #define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
-
-#ifndef NDEBUG
-#define E4F_DEBUG(format, ...)      fprintf(logfile_fd, "[%s:%d] " format "\n"  \
-                                                      , __PRETTY_FUNCTION__     \
-                                                      , __LINE__, ##__VA_ARGS__)
-#else
-#define E4F_DEBUG(format, ...)      do { } while(0)
-#endif
 
 struct ext4_super_block *ext4_sb;
 struct ext4_group_desc **ext4_gd_table;

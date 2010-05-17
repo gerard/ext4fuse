@@ -19,12 +19,8 @@ fs-random:
 	dd if=/dev/urandom of=ext4fsr.raw bs=128 count=$$((1024 * 1024))
 	mke2fs -t ext4 ext4fsr.raw
 
-# Not working at the moment.  Use mount
-run:
-	valgrind ./ext4fuse ext4fs.raw
-
 mount:
-	mkdir t
+	mkdir -p t
 	./ext4fuse ext4fs.raw t/
 
 umount:
