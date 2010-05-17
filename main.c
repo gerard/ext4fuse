@@ -105,7 +105,7 @@ uint32_t get_group_desc_size(void)
     else return sizeof(struct ext4_group_desc);
 }
 
-struct ext4_super_block *get_super_block()
+struct ext4_super_block *get_super_block(void)
 {
     struct ext4_super_block *ret = malloc(sizeof(struct ext4_super_block));
 
@@ -366,7 +366,7 @@ int e4flib_initialize(char *fs_file)
         return -1;
     }
 
-    if ((ext4_sb = get_super_block(fd)) == NULL) {
+    if ((ext4_sb = get_super_block()) == NULL) {
         E4F_DEBUG("No ext4 format found\n");
         return -1;
     }
