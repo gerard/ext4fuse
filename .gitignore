@@ -1,5 +1,5 @@
 ext4fs.raw
 ext4fsr.raw
-main.o
 ext4fuse
+*.o
 .*.swp

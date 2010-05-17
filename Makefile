@@ -1,7 +1,7 @@
 CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=22 -std=gnu99 -g3
 LDFLAGS += $(shell pkg-config fuse --libs)
 
-ext4fuse: main.o
+ext4fuse: main.o fuse-main.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 fs:
@@ -19,8 +19,17 @@ fs-random:
 	dd if=/dev/urandom of=ext4fsr.raw bs=128 count=$$((1024 * 1024))
 	mke2fs -t ext4 ext4fsr.raw
 
+# Not working at the moment.  Use mount
 run:
 	valgrind ./ext4fuse ext4fs.raw
+
+mount:
+	mkdir t
+	./ext4fuse ext4fs.raw t/
+
+umount:
+	fusermount -u t/
+	rmdir t
 
 clean:
 	rm -f *.o ext4fuse

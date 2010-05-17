@@ -35,9 +35,13 @@
 #define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
+#if 1
 #define E4F_DEBUG(format, ...)      fprintf(stderr, "[%s:%d] " format "\n"  \
                                                   , __PRETTY_FUNCTION__     \
                                                   , __LINE__, ##__VA_ARGS__)
+#else
+#define E4F_DEBUG(format, ...)      do { } while(0)
+#endif
 
 struct ext4_super_block *ext4_sb;
 struct ext4_group_desc **ext4_gd_table;
@@ -150,6 +154,13 @@ struct ext4_inode *get_inode(uint32_t inode_num)
     return ret;
 }
 
+void e4flib_free_inode(struct ext4_inode *inode)
+{
+    if (inode == root_inode) return;
+    E4F_FREE(inode);
+}
+
+
 /* We assume that the data block is a directory */
 struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t size, int *n_read)
 {
@@ -172,14 +183,14 @@ struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t si
     /* return realloc(entry_table, sizeof(struct ext4_dir_entry_2 *) * entry_count); */
 }
 
-char *get_printable_dirname(char *s, struct ext4_dir_entry_2 *entry)
+char *e4flib_get_printable_name(char *s, struct ext4_dir_entry_2 *entry)
 {
     memcpy(s, entry->name, entry->name_len);
     s[entry->name_len] = 0;
     return s;
 }
 
-uint8_t get_path_token_len(char *path)
+uint8_t get_path_token_len(const char *path)
 {
     uint8_t len = 0;
     while (path[len] != '/' && path[len]) len++;
@@ -232,7 +243,7 @@ uint32_t get_blocks_in_extents(struct ext4_extent *exts, int n)
     return ret;
 }
 
-uint8_t *get_data_blocks_from_inode(struct ext4_inode *inode)
+uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 {
     uint8_t *blocks = NULL;
 
@@ -289,7 +300,14 @@ uint8_t *get_data_blocks_from_inode(struct ext4_inode *inode)
     return blocks;
 }
 
-int lookup_path(char *path, struct ext4_inode **ret_inode)
+struct ext4_dir_entry_2 **e4flib_get_dentries_inode(struct ext4_inode *inode, int *n_read)
+{
+    uint8_t *data = e4flib_get_data_blocks_from_inode(inode);
+
+    return get_all_directory_entries(data, inode->i_size_lo, n_read);
+}
+
+int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 {
     struct ext4_dir_entry_2 **dir_entries;
     struct ext4_inode *lookup_inode;
@@ -313,14 +331,14 @@ int lookup_path(char *path, struct ext4_inode **ret_inode)
 
         uint8_t path_len = get_path_token_len(path);
 
-        lookup_blocks = get_data_blocks_from_inode(lookup_inode);
+        lookup_blocks = e4flib_get_data_blocks_from_inode(lookup_inode);
         dir_entries = get_all_directory_entries(lookup_blocks, lookup_inode->i_size_lo, &n_entries);
-        if (lookup_inode != root_inode) E4F_FREE(lookup_inode);
+        e4flib_free_inode(lookup_inode);
 
         int i;
         for (i = 0; i < n_entries; i++) {
             char buffer[EXT4_NAME_LEN];
-            get_printable_dirname(buffer, dir_entries[i]);
+            e4flib_get_printable_name(buffer, dir_entries[i]);
 
             if (path_len != dir_entries[i]->name_len) continue;
 
@@ -340,11 +358,34 @@ int lookup_path(char *path, struct ext4_inode **ret_inode)
     } while((path = strchr(path, '/')));
 
     if (ret_inode) *ret_inode = lookup_inode;
-    else E4F_FREE(lookup_inode);
+    else e4flib_free_inode(lookup_inode);
 
     return 0;
 }
 
+int e4flib_initialize(char *fs_file)
+{
+    fd = open(fs_file, O_RDONLY);
+    if (fd == -1) {
+        perror("open");
+        return -1;
+    }
+
+    if ((ext4_sb = get_super_block(fd)) == NULL) {
+        E4F_DEBUG("No ext4 format found\n");
+        return -1;
+    }
+
+    ext4_gd_table = malloc(sizeof(struct ext4_group_desc *) * get_n_block_groups());
+    for (int i = 0; i < get_n_block_groups(); i++) {
+        ext4_gd_table[i] = get_group_descriptor(i);
+    }
+
+    root_inode = get_inode(2);
+
+    return 0;
+}
+/*
 int main(int argc, char *argv[])
 {
     if (argc < 2) {
@@ -403,3 +444,4 @@ int main(int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
+*/
