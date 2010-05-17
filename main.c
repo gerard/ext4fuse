@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -167,7 +166,7 @@ struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t si
 
     while(blocks < data_end) {
         entry_table[entry_count] = (struct ext4_dir_entry_2 *)blocks;
-        assert(entry_table[entry_count]->rec_len >= 12);
+        E4F_ASSERT(entry_table[entry_count]->rec_len >= 12);
         blocks += entry_table[entry_count]->rec_len;
         entry_count++;
     }
@@ -214,7 +213,7 @@ struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
     struct ext4_extent *exts;
 
     read_disk(BLOCKS2BYTES(leaf_block), sizeof(struct ext4_extent_header), &ext_h);
-    assert(ext_h.eh_depth == 0);
+    E4F_ASSERT(ext_h.eh_depth == 0);
 
     uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
     exts = malloc(extents_length);
@@ -243,54 +242,64 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         struct ext4_extent_header *ext_header = get_extent_header_from_inode(inode);
-        assert(ext_header->eh_magic == EXT4_EXT_MAGIC);
+        struct ext4_extent *extents = NULL;
+
+        E4F_ASSERT(ext_header->eh_magic == EXT4_EXT_MAGIC);
 
         if (ext_header->eh_depth == 0) {
             /* These assertions are not real, of course.  These parameters
              * could be almost anything.  We are trying to handle the easy
              * case for now. */
-            struct ext4_extent *extent = get_extent_from_inode(inode, 0);
+            int cur_block = 0;
 
-            assert(ext_header->eh_entries == 1);
-            assert(extent->ee_block == 0);
-            assert(inode->i_size_lo <= BLOCKS2BYTES(extent->ee_len));
-            assert(extent->ee_start_hi == 0);
+            extents = get_extent_from_inode(inode, 0);
+            blocks = malloc_blocks(get_blocks_in_extents(extents, ext_header->eh_entries));
+            
+            E4F_ASSERT(ext_header->eh_entries <= 6);
 
-            blocks = malloc_blocks(extent->ee_len);
-            read_disk_blocks(extent->ee_start_lo, extent->ee_len, blocks);
+            /* Factor this loop out (same than the next case) */
+            for (int i = 0; i < ext_header->eh_entries; i++) {
+                E4F_ASSERT(extents[i].ee_start_hi == 0);
+                E4F_ASSERT(cur_block == extents[i].ee_block);
+
+                E4F_DEBUG("Length: %d | LBlock: %d", extents[i].ee_len, extents[i].ee_block);
+                read_disk_blocks(extents[i].ee_start_lo, extents[i].ee_len, blocks + BLOCKS2BYTES(cur_block));
+                cur_block += extents[i].ee_len;
+            }
         } else {
             int n_extents;
             struct ext4_extent_idx *ext_idx = get_extent_idx_from_inode(inode, 0);
-            struct ext4_extent *extents = get_extent_from_leaf(ext_idx->ei_leaf_lo, &n_extents);
-            uint8_t dir_blocks[BLOCKS2BYTES(n_extents)];
             int cur_block = 0;
 
-            assert(ext_header->eh_entries == 1);
-            assert(ext_header->eh_depth == 1);
-            assert(n_extents);
-
+            extents = get_extent_from_leaf(ext_idx->ei_leaf_lo, &n_extents);
             blocks = malloc_blocks(get_blocks_in_extents(extents, n_extents));
+
+            E4F_ASSERT(ext_header->eh_entries == 1);
+            E4F_ASSERT(ext_header->eh_depth == 1);
+            E4F_ASSERT(n_extents);
+
             E4F_DEBUG("%x", inode->i_size_lo);
 
             for (int i = 0; i < n_extents; i++) {
-                assert(extents[i].ee_start_hi == 0);
-                assert(cur_block == extents[i].ee_block);
+                E4F_ASSERT(extents[i].ee_start_hi == 0);
+                E4F_ASSERT(cur_block == extents[i].ee_block);
 
                 E4F_DEBUG("Length: %d | LBlock: %d", extents[i].ee_len, extents[i].ee_block);
                 read_disk_blocks(extents[i].ee_start_lo, extents[i].ee_len, blocks + BLOCKS2BYTES(cur_block));
                 cur_block += extents[i].ee_len;
             }
 
+            /* Only free extents if they weren't part of the inode! */
             E4F_FREE(extents);
         }
     } else {
-        assert(inode->i_size_lo <= get_block_size());
+        E4F_ASSERT(inode->i_size_lo <= get_block_size());
 
         blocks = malloc_blocks(1);
         read_disk_block(inode->i_block[0], blocks);
     }
 
-    assert(blocks);
+    E4F_ASSERT(blocks);
     return blocks;
 }
 
@@ -419,14 +428,14 @@ int main(int argc, char *argv[])
 
     root_inode = get_inode(2);
 
-    assert(lookup_path("/lost+found", NULL) == 0);
-    assert(lookup_path("/.", NULL) == 0);
-    assert(lookup_path("/dir1/dir2/dir3/file", NULL) == 0);
+    E4F_ASSERT(lookup_path("/lost+found", NULL) == 0);
+    E4F_ASSERT(lookup_path("/.", NULL) == 0);
+    E4F_ASSERT(lookup_path("/dir1/dir2/dir3/file", NULL) == 0);
 
     struct ext4_inode *inode = NULL;
     uint8_t *file_data = NULL;
 
-    assert(lookup_path("/Documentation/zorro.txt", &inode) == 0);
+    E4F_ASSERT(lookup_path("/Documentation/zorro.txt", &inode) == 0);
     file_data = get_data_blocks_from_inode(inode);
     for (int i = 0; i < inode->i_size_lo; i++) {
         putchar((char)file_data[i]);
@@ -434,7 +443,7 @@ int main(int argc, char *argv[])
     E4F_FREE(file_data);
     E4F_FREE(inode);
 
-    assert(lookup_path("/Documentation/CodingStyle", &inode) == 0);
+    E4F_ASSERT(lookup_path("/Documentation/CodingStyle", &inode) == 0);
     file_data = get_data_blocks_from_inode(inode);
     for (int i = 0; i < inode->i_size_lo; i++) {
         putchar((char)file_data[i]);
@@ -442,7 +451,7 @@ int main(int argc, char *argv[])
     E4F_FREE(file_data);
     E4F_FREE(inode);
 
-    assert(lookup_path("/Documentation/mips/00-INDEX", &inode) == 0);
+    E4F_ASSERT(lookup_path("/Documentation/mips/00-INDEX", &inode) == 0);
     file_data = get_data_blocks_from_inode(inode);
     for (int i = 0; i < inode->i_size_lo; i++) {
         putchar((char)file_data[i]);

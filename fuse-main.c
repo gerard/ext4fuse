@@ -25,10 +25,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <execinfo.h>
 
 #include "ext4.h"
 #include "e4flib.h"
 
+
+void signal_handle_sigsegv(int signal)
+{
+    void *array[10];
+    size_t size;
+    char **strings;
+    size_t i;
+
+    E4F_DEBUG("========================================");
+    E4F_DEBUG("Segmentation Fault.  Starting backtrace:");
+    size = backtrace(array, 10);
+    strings = backtrace_symbols(array, size);
+
+    for (i = 0; i < size; i++)
+        E4F_DEBUG("%s", strings[i]);
+    E4F_DEBUG("========================================");
+
+    abort();
+}
 
 static int e4f_getattr(const char *path, struct stat *stbuf)
 {
@@ -42,9 +63,16 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
         return ret;
     }
 
+    E4F_ASSERT(inode);
+
     stbuf->st_mode = inode->i_mode;
     stbuf->st_nlink = inode->i_links_count;
     stbuf->st_size = inode->i_size_lo;
+    stbuf->st_uid = inode->i_uid;
+    stbuf->st_gid = inode->i_gid;
+    stbuf->st_atime = inode->i_atime;
+    stbuf->st_mtime = inode->i_mtime;
+    stbuf->st_ctime = inode->i_ctime;
 
     e4flib_free_inode(inode);
 
@@ -133,6 +161,8 @@ int main(int argc, char *argv[])
 
     snprintf(logfile, 255, "%s/%s", getenv("HOME"), ".ext4fuse.log");
     e4flib_logfile(logfile);
+
+    signal(SIGSEGV, signal_handle_sigsegv);
 
     argc--;
     argv[1] = argv[2];
