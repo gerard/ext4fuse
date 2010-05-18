@@ -99,6 +99,8 @@ static int e4f_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         filler(buf, name_buffer, NULL, 0);
     }
 
+    /* Nasty, but works... This points to the allocated data blocks */
+    free(entries[0]);
     free(entries);
     e4flib_free_inode(inode);
 

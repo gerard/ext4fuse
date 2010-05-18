@@ -1,4 +1,4 @@
-CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=22 -std=gnu99 -g3
+CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=22 -std=gnu99 -g3 -Wall
 LDFLAGS += $(shell pkg-config fuse --libs)
 
 ext4fuse: e4flib.o fuse-main.o
@@ -7,7 +7,7 @@ ext4fuse: e4flib.o fuse-main.o
 fs:
 	dd if=/dev/zero of=ext4fs.raw bs=128 count=$$((1024 * 1024))
 	mke2fs -F -t ext4 ext4fs.raw
-	mkdir t
+	mkdir -p t
 	sudo mount -o loop ext4fs.raw t/
 	mkdir -p t/dir1/dir2/dir3
 	touch t/dir1/dir2/dir3/file
@@ -22,6 +22,10 @@ fs-random:
 mount:
 	mkdir -p t
 	./ext4fuse ext4fs.raw t/
+
+mvalgrind:
+	mkdir -p t
+	valgrind -v ./ext4fuse ext4fs.raw t/
 
 umount:
 	fusermount -u t/

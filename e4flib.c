@@ -59,7 +59,7 @@ FILE *logfile_fd = NULL;
 
 
 uint32_t get_block_size(void) {
-    return 1 << ext4_sb->s_log_block_size + 10;
+    return 1 << (ext4_sb->s_log_block_size + 10);
 }
 
 int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
@@ -157,7 +157,6 @@ struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t si
     /* The smallest directory entry is 12 bytes */
     struct ext4_dir_entry_2 **entry_table = malloc(sizeof(struct ext4_dir_entry_2 *) * (size / 12));
     uint8_t *data_end = blocks + size;
-    uint8_t *data_start = blocks;
     uint32_t entry_count = 0;
 
     memset(entry_table, 0, sizeof(struct ext4_dir_entry_2 *) * (size / 12));
@@ -193,18 +192,6 @@ struct ext4_extent_header *get_extent_header_from_inode(struct ext4_inode *inode
     return (struct ext4_extent_header *)inode->i_block;
 }
 
-struct ext4_extent_idx *get_extent_idx_from_inode(struct ext4_inode *inode, int n)
-{
-    return (struct ext4_extent_idx *)(((char *)inode->i_block) + sizeof(struct ext4_extent_header)
-                                                               + n * sizeof(struct ext4_extent_idx));
-}
-
-struct ext4_extent *get_extent_from_inode(struct ext4_inode *inode, int n)
-{
-    return (struct ext4_extent *)(((char *)inode->i_block) + sizeof(struct ext4_extent_header)
-                                                           + n * sizeof(struct ext4_extent));
-}
-
 struct ext4_extent *get_extents_from_ext_header(struct ext4_extent_header *h)
 {
     return (struct ext4_extent *)(((char *)h) + sizeof(struct ext4_extent_header));
@@ -231,17 +218,6 @@ struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
 
     if (n_entries) *n_entries = ext_h.eh_entries;
     return exts;
-}
-
-uint32_t get_blocks_in_extents(struct ext4_extent *exts, int n)
-{
-    uint32_t ret = 0;
-
-    for (int i = 0; i < n; i++) {
-        ret += exts[i].ee_len;
-    }
-
-    return ret;
 }
 
 uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
@@ -305,7 +281,9 @@ int get_block_from_extent_header(struct ext4_extent_header *eh, uint32_t n, uint
         struct ext4_extent_idx *ei = get_extent_idxs_from_ext_header(eh);
         struct ext4_extent *ee = get_extent_from_leaf(ei->ei_leaf_lo, &n_leaf_entries);
 
-        return get_block_from_extents(ee, n_leaf_entries, n, block);
+        int ret = get_block_from_extents(ee, n_leaf_entries, n, block);
+        free(ee);
+        return ret;
     }
 }
 
