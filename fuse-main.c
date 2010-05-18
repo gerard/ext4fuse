@@ -113,6 +113,8 @@ static int e4f_open(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
+/* TODO: All this code is really messy with the edge cases (when a size falls
+ *       on modulo block size.  Clean it up at some point. */
 static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
                     struct fuse_file_info *fi)
 {
@@ -142,7 +144,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     }
 
     n_block_start = offset / get_block_size();
-    n_block_end = (offset + size) / get_block_size();
+    n_block_end = (offset + (size - 1)) / get_block_size();
     block_start_offset = offset % get_block_size();
 
     /* If the read request spans over several blocks, we will just return the
@@ -168,8 +170,12 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
 
         if (i == n_block_end) {
             E4F_DEBUG("read(2): End chunk");
-            memcpy(buf, block, (offset + size) % get_block_size());
-            buf += (offset + size) % get_block_size();
+            if (offset + size % get_block_size() == 0) {
+                memcpy(buf, block, get_block_size());
+            } else {
+                memcpy(buf, block, (offset + size) % get_block_size());
+            }
+            /* No need to increase the buffer pointer */
         } else {
             E4F_DEBUG("read(2): Middle chunk");
             memcpy(buf, block, get_block_size());

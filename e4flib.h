@@ -33,7 +33,8 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode);
 uint32_t get_block_size(void);
 int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32_t n);
 
-#define BLOCKS2BYTES(__block)                   ((__block) * get_block_size())
+#define BLOCKS2BYTES(__blks)                    ((__blks)  * get_block_size())
+#define BYTES2BLOCKS(__bytes)                   ((__bytes) / get_block_size() + ((__bytes) % get_block_size() ? 1 : 0))
 
 static inline void *malloc_blocks(size_t n)
 {
