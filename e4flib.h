@@ -30,5 +30,14 @@ char *e4flib_get_printable_name(char *s, struct ext4_dir_entry_2 *entry);
 struct ext4_dir_entry_2 **e4flib_get_dentries_inode(struct ext4_inode *inode, int *n_read);
 int e4flib_logfile(const char *logfile);
 uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode);
+uint32_t get_block_size(void);
+int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32_t n);
+
+#define BLOCKS2BYTES(__block)                   ((__block) * get_block_size())
+
+static inline void *malloc_blocks(size_t n)
+{
+    return malloc(BLOCKS2BYTES(n));
+}
 
 #endif

@@ -117,25 +117,68 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
                     struct fuse_file_info *fi)
 {
     struct ext4_inode *inode;
-    uint8_t *data;
+    uint8_t *block;
+    uint32_t n_block_start, n_block_end;
+    off_t block_start_offset;
+    size_t first_size;
+    int ret;
 
-    int ret = e4flib_lookup_path(path, &inode);
-    if (ret < 0) return ret;
+    E4F_DEBUG("read(%s, buf, %zd, %zd, fi)", path, size, offset);
 
-    data = e4flib_get_data_blocks_from_inode(inode);
-
-    E4F_DEBUG("Reading %zx +%zx bytes from %s\n", offset, size, path);
-
-    if (offset < inode->i_size_lo) {
-        if (offset + size > inode->i_size_lo)
-            size = inode->i_size_lo - offset;
-        memcpy(buf, data + offset, size);
-    } else {
-        size = 0;
+    if ((ret = e4flib_lookup_path(path, &inode))) {
+        return ret;
     }
 
-    free(data);
+    if (size == 0) {
+        return size;
+    }
+
+    if (offset >= inode->i_size_lo) {
+        return 0;
+    }
+
+    if ((offset + size) > inode->i_size_lo) {
+        size = inode->i_size_lo - offset;
+    }
+
+    n_block_start = offset / get_block_size();
+    n_block_end = (offset + size) / get_block_size();
+    block_start_offset = offset % get_block_size();
+
+    /* If the read request spans over several blocks, we will just return the
+     * data contained in the first one */
+    if (n_block_start != n_block_end) {
+        first_size = ((n_block_start + 1) * get_block_size()) - offset;
+        E4F_ASSERT(size >= first_size);
+    } else {
+        first_size = size;
+    }
+
+
+    block = malloc_blocks(1);
+
+    /* First block, might be missaligned */
+    e4flib_get_block_from_inode(inode, block, n_block_start);
+    E4F_DEBUG("read(2): Initial chunk: %zx [%i:%zd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
+    memcpy(buf, block + block_start_offset, first_size);
+    buf += first_size;
+
+    for (int i = n_block_start + 1; i <= n_block_end; i++) {
+        e4flib_get_block_from_inode(inode, block, i);
+
+        if (i == n_block_end) {
+            E4F_DEBUG("read(2): End chunk");
+            memcpy(buf, block, (offset + size) % get_block_size());
+            buf += (offset + size) % get_block_size();
+        } else {
+            E4F_DEBUG("read(2): Middle chunk");
+            memcpy(buf, block, get_block_size());
+            buf += get_block_size();
+        }
+    }
+
     e4flib_free_inode(inode);
+    free(block);
 
     return size;
 }
