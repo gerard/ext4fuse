@@ -67,7 +67,7 @@ int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
     off_t cur = lseek(fd, 0, SEEK_CUR);
     int ret;
 
-    E4F_DEBUG("Disk Read: 0x%08zx +0x%zx [%s:%d]", where, size, func, line);
+    E4F_DEBUG("Disk Read: 0x%08llx +0x%zx [%s:%d]", where, size, func, line);
 
     lseek(fd, where, SEEK_SET);
     ret = read(fd, p, size);
