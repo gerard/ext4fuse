@@ -16,11 +16,21 @@ fs:
 	rmdir t
 
 fs-random:
-	dd if=/dev/urandom of=ext4fsr.raw bs=128 count=$$((1024 * 1024))
-	mke2fs -t ext4 ext4fsr.raw
+	dd if=/dev/zero of=ext4fsr.raw bs=1024 count=$$((1024 * 1024))
+	mke2fs -F -t ext4 ext4fsr.raw
+	mkdir -p t
+	sudo mount -o loop ext4fsr.raw t/
+	dd if=/dev/urandom of=t/randomfile bs=800 count=$$((1024 * 1024))
+	md5sum t/randomfile > fs-random.md5
+	sudo umount t
+	rmdir t
 
 mount:
-	mkdir -p t
+	mkdir t
+	./ext4fuse ext4fs.raw t/
+
+mountr:
+	mkdir t
 	./ext4fuse ext4fs.raw t/
 
 mvalgrind:

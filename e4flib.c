@@ -57,6 +57,14 @@ FILE *logfile_fd = NULL;
     (__ptr) = NULL;                     \
 })
 
+#define ALIGN_TO_BLOCKSIZE(__n) ({                                      \
+    typeof (__n) __ret;                                                 \
+    if ((__n) % get_block_size()) {                                     \
+        __ret = ((__n) & (~(get_block_size() - 1))) + get_block_size(); \
+    } else __ret = (__n);                                               \
+    __ret;                                                              \
+})
+
 
 uint32_t get_block_size(void) {
     return 1 << (ext4_sb->s_log_block_size + 10);
@@ -114,7 +122,8 @@ struct ext4_super_block *get_super_block(void)
 struct ext4_group_desc *get_group_descriptor(int n)
 {
     struct ext4_group_desc *ret = malloc(sizeof(struct ext4_group_desc));
-    off_t bg_off = BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block) + n * get_group_desc_size();
+    off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
+    bg_off += n * get_group_desc_size();
 
     read_disk(bg_off, sizeof(struct ext4_group_desc), ret);
 
