@@ -219,5 +219,5 @@ int main(int argc, char *argv[])
     argv[1] = argv[2];
     argv[2] = NULL;
 
-    return fuse_main(argc, argv, &e4f_ops);
+    return fuse_main(argc, argv, &e4f_ops, NULL);
 }   
