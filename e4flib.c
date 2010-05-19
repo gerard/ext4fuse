@@ -125,7 +125,7 @@ struct ext4_group_desc *get_group_descriptor(int n)
     off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
     bg_off += n * get_group_desc_size();
 
-    read_disk(bg_off, sizeof(struct ext4_group_desc), ret);
+    read_disk(bg_off, get_group_desc_size(), ret);
 
     return ret;
 }
@@ -141,10 +141,12 @@ struct ext4_inode *get_inode(uint32_t inode_num)
     inode_num--;    /* Inode 0 doesn't exist on disk */
 
     /* We might not read the whole struct if disk inodes are smaller */
-    struct ext4_inode *ret = malloc(sizeof(struct ext4_inode));
-    memset(ret, 0, sizeof(struct ext4_inode));
+    struct ext4_inode *ret = malloc(ext4_sb->s_inode_size);
+    memset(ret, 0, ext4_sb->s_inode_size);
 
     struct ext4_group_desc *gdesc = ext4_gd_table[get_block_group_for_inode(inode_num)];
+    E4F_ASSERT(gdesc->bg_inode_table_hi == 0);
+
     off_t inode_off = BLOCKS2BYTES(gdesc->bg_inode_table_lo)
                     + (inode_num % ext4_sb->s_inodes_per_group) * ext4_sb->s_inode_size;
 
