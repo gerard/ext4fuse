@@ -262,7 +262,6 @@ int get_block_from_extents(struct ext4_extent *ee, uint32_t n_entries, uint32_t 
     /* Skip to the right extent entry */
     for (i = 0; i < n_entries; i++) {
         E4F_ASSERT(ee[i].ee_start_hi == 0);
-        E4F_DEBUG("Want: %d | Length: %d | LBlock: %d", n_block, ee[i].ee_len, ee[i].ee_block);
 
         if (ee[i].ee_block + ee[i].ee_len > n_block) {
             block_ext_index = i;
