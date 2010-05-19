@@ -171,10 +171,16 @@ struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t si
     memset(entry_table, 0, sizeof(struct ext4_dir_entry_2 *) * (size / 12));
 
     while(blocks < data_end) {
-        entry_table[entry_count] = (struct ext4_dir_entry_2 *)blocks;
-        E4F_ASSERT(entry_table[entry_count]->rec_len >= 12);
-        blocks += entry_table[entry_count]->rec_len;
-        entry_count++;
+        struct ext4_dir_entry_2 *new_entry = (struct ext4_dir_entry_2 *)blocks;
+        blocks += new_entry->rec_len;
+        E4F_ASSERT(new_entry->rec_len >= 12);
+
+        /* At least the lost+found directories seem to have directory entries
+         * with 0-inode.  Skip over them and never report them back. */
+        if (new_entry->inode) {
+            entry_table[entry_count] = new_entry;
+            entry_count++;
+        }
     }
 
     if (n_read) *n_read = entry_count;
