@@ -141,7 +141,9 @@ struct ext4_inode *get_inode(uint32_t inode_num)
     memset(ret, 0, ext4_sb->s_inode_size);
 
     struct ext4_group_desc *gdesc = ext4_gd_table[get_block_group_for_inode(inode_num)];
-    E4F_ASSERT(gdesc->bg_inode_table_hi == 0);
+    // Rewrite better this assert, some group descriptors are smaller than
+    // the offset of this fields so the outcome is based on radom memory
+    //E4F_ASSERT(gdesc->bg_inode_table_hi == 0);
 
     off_t inode_off = BLOCKS2BYTES(gdesc->bg_inode_table_lo)
                     + (inode_num % ext4_sb->s_inodes_per_group) * ext4_sb->s_inode_size;
