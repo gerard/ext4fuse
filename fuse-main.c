@@ -172,7 +172,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
 
         if (i == n_block_end) {
             E4F_DEBUG("read(2): End chunk");
-            if (offset + size % get_block_size() == 0) {
+            if ((offset + size) % get_block_size() == 0) {
                 memcpy(buf, block, get_block_size());
             } else {
                 memcpy(buf, block, (offset + size) % get_block_size());
