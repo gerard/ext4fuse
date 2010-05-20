@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "ext4.h"
 #include "e4flib.h"
@@ -72,25 +73,20 @@ uint32_t get_block_size(void) {
 
 int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
 {
-    off_t cur = lseek(fd, 0, SEEK_CUR);
-    int ret;
+    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    int read_ret;
+    int lseek_ret;
 
+    pthread_mutex_lock(&lock);
     E4F_DEBUG("Disk Read: 0x%08llx +0x%zx [%s:%d]", where, size, func, line);
+    lseek_ret = lseek(fd, where, SEEK_SET);
+    read_ret = read(fd, p, size);
+    pthread_mutex_unlock(&lock);
 
-    lseek(fd, where, SEEK_SET);
-    ret = read(fd, p, size);
-    lseek(fd, cur, SEEK_SET);
+    E4F_ASSERT(lseek_ret == where);
+    E4F_ASSERT(read_ret == size);
 
-    if (ret == -1) {
-        perror("read");
-        return ret;
-    }
-
-    if (ret != size) {
-        E4F_DEBUG("Read returns less than expected [%d/%zd]", ret, size);
-    }
-
-    return ret;
+    return 0;
 }
 
 uint32_t get_block_group_size(void)
