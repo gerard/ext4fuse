@@ -74,8 +74,8 @@ uint32_t get_block_size(void) {
 int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
 {
     static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-    int read_ret;
-    int lseek_ret;
+    ssize_t read_ret;
+    off_t lseek_ret;
 
     pthread_mutex_lock(&lock);
     E4F_DEBUG("Disk Read: 0x%08llx +0x%zx [%s:%d]", where, size, func, line);
