@@ -43,45 +43,21 @@ static int get_link_dest(struct ext4_inode *inode, char *buf)
     return inode->i_size_lo + 1;
 }
 
-static int is_absolute_path(const char *path)
-{
-    return path[0] == '/';
-}
-
 /* Check return values, bufer sizes and so on; strings are nasty... */
 int e4f_readlink(const char *path, char *buf, size_t bufsize)
 {
     struct ext4_inode *inode;
-    char link_buf[4096];
-    char path_buf[4096];
+    int ret = 0;
 
     e4flib_lookup_path(path, &inode);
     if (!S_ISLNK(inode->i_mode)) {
-        e4flib_free_inode(inode);
-        return -EINVAL;
+        ret = -EINVAL;
+        goto fail;
     }
 
-    strcpy(path_buf, path);
-    dirname(path_buf);
+    get_link_dest(inode, buf);
 
-    do {
-        get_link_dest(inode, link_buf);
-        e4flib_free_inode(inode);
-
-        if (is_absolute_path(link_buf)) {
-            strcpy(path_buf, link_buf);
-        } else {
-            char *path_buf_last = &path_buf[strlen(path_buf) - 1];
-            if (*path_buf_last != '/') strcat(path_buf, "/");
-            strcat(path_buf, link_buf);
-        }
-
-        e4flib_lookup_path(path_buf, &inode);
-    } while (S_ISLNK(inode->i_mode & S_IFLNK));
+fail:
     e4flib_free_inode(inode);
-
-    E4F_DEBUG("Link resolved \"%s\" => \"%s\"", path, path_buf);
-
-    strncpy(buf, path_buf, bufsize);
-    return 0;
+    return ret;
 }
