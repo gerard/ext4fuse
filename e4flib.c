@@ -228,7 +228,7 @@ struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
     uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
     exts = malloc(extents_length);
 
-    uint32_t where = BLOCKS2BYTES(leaf_block) + sizeof(struct ext4_extent);
+    uint64_t where = BLOCKS2BYTES(leaf_block) + sizeof(struct ext4_extent);
     read_disk(where, extents_length, exts);
 
     if (n_entries) *n_entries = ext_h.eh_entries;
