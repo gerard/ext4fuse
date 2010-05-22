@@ -30,6 +30,7 @@
 #include "ext4.h"
 #include "e4flib.h"
 #include "disk.h"
+#include "logging.h"
 
 #define BOOT_SECTOR_SIZE            0x400
 #define GROUP_DESC_MIN_SIZE         0x20
@@ -118,7 +119,7 @@ struct ext4_inode *get_inode(uint32_t inode_num)
     struct ext4_group_desc *gdesc = ext4_gd_table[get_block_group_for_inode(inode_num)];
     // Rewrite better this assert, some group descriptors are smaller than
     // the offset of this fields so the outcome is based on radom memory
-    //E4F_ASSERT(gdesc->bg_inode_table_hi == 0);
+    //ASSERT(gdesc->bg_inode_table_hi == 0);
 
     off_t inode_off = BLOCKS2BYTES(gdesc->bg_inode_table_lo)
                     + (inode_num % ext4_sb->s_inodes_per_group) * ext4_sb->s_inode_size;
@@ -148,7 +149,7 @@ struct ext4_dir_entry_2 **get_all_directory_entries(uint8_t *blocks, uint32_t si
     while(blocks < data_end) {
         struct ext4_dir_entry_2 *new_entry = (struct ext4_dir_entry_2 *)blocks;
         blocks += new_entry->rec_len;
-        E4F_ASSERT(new_entry->rec_len >= 12);
+        ASSERT(new_entry->rec_len >= 12);
 
         /* At least the lost+found directories seem to have directory entries
          * with 0-inode.  Skip over them and never report them back. */
@@ -198,7 +199,7 @@ struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
     struct ext4_extent *exts;
 
     read_disk(BLOCKS2BYTES(leaf_block), sizeof(struct ext4_extent_header), &ext_h);
-    E4F_ASSERT(ext_h.eh_depth == 0);
+    ASSERT(ext_h.eh_depth == 0);
 
     uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
     exts = malloc(extents_length);
@@ -217,9 +218,9 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
     uint32_t n_blocks = BYTES2BLOCKS(inode->i_size_lo);
     uint8_t *blocks = malloc_blocks(n_blocks);
 
-    E4F_DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
+    DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
     for (int i = 0; i < n_blocks; i++) {
-        E4F_ASSERT(e4flib_get_block_from_inode(inode, blocks + BLOCKS2BYTES(i), i) == 0);
+        ASSERT(e4flib_get_block_from_inode(inode, blocks + BLOCKS2BYTES(i), i) == 0);
     }
 
     return blocks;
@@ -231,21 +232,21 @@ int get_block_from_extents(struct ext4_extent *ee, uint32_t n_entries, uint32_t 
     int block_ext_offset = 0;
     int i;
 
-    E4F_DEBUG("Extent contains %d entries", n_entries);
-    E4F_DEBUG("Looking for LBlock %d", n_block);
+    DEBUG("Extent contains %d entries", n_entries);
+    DEBUG("Looking for LBlock %d", n_block);
 
     /* Skip to the right extent entry */
     for (i = 0; i < n_entries; i++) {
-        E4F_ASSERT(ee[i].ee_start_hi == 0);
+        ASSERT(ee[i].ee_start_hi == 0);
 
         if (ee[i].ee_block + ee[i].ee_len > n_block) {
             block_ext_index = i;
             block_ext_offset = n_block - ee[i].ee_block;
-            E4F_DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
+            DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
             break;
         }
     }
-    E4F_ASSERT(i != n_entries);
+    ASSERT(i != n_entries);
 
     read_disk_block(ee[block_ext_index].ee_start_lo + block_ext_offset, block);
     return 0;
@@ -253,8 +254,8 @@ int get_block_from_extents(struct ext4_extent *ee, uint32_t n_entries, uint32_t 
 
 int get_block_from_extent_header(struct ext4_extent_header *eh, uint32_t n, uint8_t *block)
 {
-    E4F_ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
-    E4F_ASSERT(eh->eh_entries <= 6);
+    ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
+    ASSERT(eh->eh_entries <= 6);
 
     if (eh->eh_depth == 0) {
         struct ext4_extent *extents = get_extents_from_ext_header(eh);
@@ -263,8 +264,8 @@ int get_block_from_extent_header(struct ext4_extent_header *eh, uint32_t n, uint
     } else {
         /* Not valid assertions, but we can deal with those later.  I really
          * should have look how extent indexes work... */
-        E4F_ASSERT(eh->eh_depth == 1);
-        E4F_ASSERT(eh->eh_entries == 1);
+        ASSERT(eh->eh_depth == 1);
+        ASSERT(eh->eh_entries == 1);
 
         int n_leaf_entries;
         struct ext4_extent_idx *ei = get_extent_idxs_from_ext_header(eh);
@@ -282,7 +283,7 @@ int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32
         struct ext4_extent_header *ext_header = get_extent_header_from_inode(inode);
         return get_block_from_extent_header(ext_header, n, block);
     } else {
-        E4F_ASSERT(n <= BYTES2BLOCKS(inode->i_size_lo));
+        ASSERT(n <= BYTES2BLOCKS(inode->i_size_lo));
 
         if (n < MAX_DIRECTED_BLOCK) {
             read_disk_block(inode->i_block[n], block);
@@ -299,7 +300,7 @@ int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32
         }
 
         /* Handle this later */
-        E4F_ASSERT(n < MAX_INDIRECTED_BLOCK);
+        ASSERT(n < MAX_INDIRECTED_BLOCK);
         return -1;
     }
 }
@@ -319,7 +320,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
     int n_entries;
 
 
-    E4F_DEBUG("Looking up: %s", path);
+    DEBUG("Looking up: %s", path);
     if (!IS_PATH_SEPARATOR(path[0])) {
         return -ENOENT;
     }
@@ -347,7 +348,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
             if (path_len != dir_entries[i]->name_len) continue;
 
             if (!memcmp(path, dir_entries[i]->name, dir_entries[i]->name_len)) {
-                E4F_DEBUG("Lookup following inode %d", dir_entries[i]->inode);
+                DEBUG("Lookup following inode %d", dir_entries[i]->inode);
                 lookup_inode = get_inode(dir_entries[i]->inode);
 
                 break;
@@ -369,12 +370,12 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 int e4flib_initialize(char *fs_file)
 {
     if (open_disk(fs_file) < 0) {
-        E4F_DEBUG("Couldn't initialize disk");
+        DEBUG("Couldn't initialize disk");
         return -1;
     }
 
     if ((ext4_sb = get_super_block()) == NULL) {
-        E4F_DEBUG("No ext4 format found");
+        DEBUG("No ext4 format found");
         return -1;
     }
 

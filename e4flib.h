@@ -6,25 +6,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-extern FILE *logfile_fd;
-
 struct ext4_inode;
 struct ext4_dir_entry_2;
-
-#ifndef NDEBUG
-#define E4F_DEBUG(format, ...)      fprintf(logfile_fd, "[%s:%d] " format "\n"  \
-                                                      , __PRETTY_FUNCTION__     \
-                                                      , __LINE__, ##__VA_ARGS__)
-#define E4F_ASSERT(assertion) ({                        \
-    if (!(assertion)) {                                 \
-        E4F_DEBUG("ASSERT FAIL: " #assertion);          \
-        assert(assertion);                              \
-    }                                                   \
-})
-#else
-#define E4F_DEBUG(format, ...)      do { } while(0)
-#define E4F_ASSERT(assertion)       do { } while(0)
-#endif
 
 int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode);
 void e4flib_free_inode(struct ext4_inode *inode);

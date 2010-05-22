@@ -31,8 +31,8 @@
 #include "ext4.h"
 #include "e4flib.h"
 #include "ops.h"
+#include "logging.h"
 
-#define DEFAULT_LOG_FILE    "/dev/null"
 
 void signal_handle_sigsegv(int signal)
 {
@@ -41,14 +41,14 @@ void signal_handle_sigsegv(int signal)
     char **strings;
     size_t i;
 
-    E4F_DEBUG("========================================");
-    E4F_DEBUG("Segmentation Fault.  Starting backtrace:");
+    DEBUG("========================================");
+    DEBUG("Segmentation Fault.  Starting backtrace:");
     size = backtrace(array, 10);
     strings = backtrace_symbols(array, size);
 
     for (i = 0; i < size; i++)
-        E4F_DEBUG("%s", strings[i]);
-    E4F_DEBUG("========================================");
+        DEBUG("%s", strings[i]);
+    DEBUG("========================================");
 
     abort();
 }
@@ -58,7 +58,7 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
     struct ext4_inode *inode;
     int ret = 0;
 
-    E4F_DEBUG("getattr(%s)", path);
+    DEBUG("getattr(%s)", path);
 
     memset(stbuf, 0, sizeof(struct stat));
     ret = e4flib_lookup_path(path, &inode);
@@ -67,7 +67,7 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
         return ret;
     }
 
-    E4F_ASSERT(inode);
+    ASSERT(inode);
 
     stbuf->st_mode = inode->i_mode;
     stbuf->st_nlink = inode->i_links_count;
@@ -131,7 +131,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     size_t first_size;
     int ret;
 
-    E4F_DEBUG("read(%s, buf, %jd, %zd, fi)", path, size, offset);
+    DEBUG("read(%s, buf, %jd, %zd, fi)", path, size, offset);
 
     if ((ret = e4flib_lookup_path(path, &inode))) {
         return ret;
@@ -157,7 +157,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
      * data contained in the first one */
     if (n_block_start != n_block_end) {
         first_size = ((n_block_start + 1) * get_block_size()) - offset;
-        E4F_ASSERT(size >= first_size);
+        ASSERT(size >= first_size);
     } else {
         first_size = size;
     }
@@ -167,7 +167,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* First block, might be missaligned */
     e4flib_get_block_from_inode(inode, block, n_block_start);
-    E4F_DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
+    DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
     memcpy(buf, block + block_start_offset, first_size);
     buf += first_size;
 
@@ -175,7 +175,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
         e4flib_get_block_from_inode(inode, block, i);
 
         if (i == n_block_end) {
-            E4F_DEBUG("read(2): End chunk");
+            DEBUG("read(2): End chunk");
             if ((offset + size) % get_block_size() == 0) {
                 memcpy(buf, block, get_block_size());
             } else {
@@ -183,7 +183,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
             }
             /* No need to increase the buffer pointer */
         } else {
-            E4F_DEBUG("read(2): Middle chunk");
+            DEBUG("read(2): Middle chunk");
             memcpy(buf, block, get_block_size());
             buf += get_block_size();
         }
@@ -210,11 +210,19 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    signal(SIGSEGV, signal_handle_sigsegv);
+    if (signal(SIGSEGV, signal_handle_sigsegv) == SIG_ERR) {
+        fprintf(stderr, "Failed to initialize signals\n");
+        return EXIT_FAILURE;
+    }
 
-    e4flib_logfile(argc == 4 ? argv[3] : DEFAULT_LOG_FILE);
+    if (logging_open(argc == 4 ? argv[3] : DEFAULT_LOG_FILE) < 0) {
+        fprintf(stderr, "Failed to initialize logging\n");
+        return EXIT_FAILURE;
+    }
+
     if (e4flib_initialize(argv[1]) < 0) {
         fprintf(stderr, "Failed to initialize ext4fuse\n");
+        return EXIT_FAILURE;
     }
 
     argc = 2;
