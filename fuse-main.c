@@ -61,7 +61,7 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
 
     ASSERT(inode);
 
-    stbuf->st_mode = inode->i_mode;
+    stbuf->st_mode = inode->i_mode & ~0222;
     stbuf->st_nlink = inode->i_links_count;
     stbuf->st_size = inode->i_size_lo;
     stbuf->st_uid = inode->i_uid;
