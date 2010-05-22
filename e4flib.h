@@ -2,6 +2,8 @@
 #define E4FLIB_H
 
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 extern FILE *logfile_fd;
 

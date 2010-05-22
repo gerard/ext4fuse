@@ -30,6 +30,7 @@
 
 #include "ext4.h"
 #include "e4flib.h"
+#include "ops.h"
 
 
 void signal_handle_sigsegv(int signal)
@@ -55,6 +56,8 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
 {
     struct ext4_inode *inode;
     int ret = 0;
+
+    E4F_DEBUG("getattr(%s)", path);
 
     memset(stbuf, 0, sizeof(struct stat));
     ret = e4flib_lookup_path(path, &inode);
@@ -196,6 +199,7 @@ static struct fuse_operations e4f_ops = {
     .readdir    = e4f_readdir,
     .open       = e4f_open,
     .read       = e4f_read,
+    .readlink   = e4f_readlink,
 };
 
 int main(int argc, char *argv[])
