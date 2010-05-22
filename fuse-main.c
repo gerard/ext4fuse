@@ -193,6 +193,7 @@ static struct fuse_operations e4f_ops = {
     .open       = e4f_open,
     .read       = e4f_read,
     .readlink   = e4f_readlink,
+    .init       = op_init,
 };
 
 int main(int argc, char *argv[])

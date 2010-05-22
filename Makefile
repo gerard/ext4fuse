@@ -3,7 +3,7 @@ LDFLAGS += $(shell pkg-config fuse --libs)
 
 BINARY = ext4fuse
 
-ext4fuse: e4flib.o fuse-main.o op_readlink.o disk.o logging.o
+ext4fuse: e4flib.o fuse-main.o op_readlink.o op_init.o disk.o logging.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 test-slow: $(BINARY)
