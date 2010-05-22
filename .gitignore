@@ -3,4 +3,4 @@ ext4fsr.raw
 ext4fuse
 *.o
 .*.swp
-/t
+/test/logs
