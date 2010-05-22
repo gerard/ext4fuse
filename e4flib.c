@@ -3,16 +3,8 @@
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public Licens
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-
+ * published by the Free Software Foundation. See README and COPYING for
+ * more details.
  */
 
 
@@ -85,7 +77,7 @@ struct ext4_super_block *get_super_block(void)
 {
     struct ext4_super_block *ret = malloc(sizeof(struct ext4_super_block));
 
-    read_disk(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), ret);
+    disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), ret);
 
     if (ret->s_magic != 0xEF53) return NULL;
     else return ret;
@@ -97,7 +89,7 @@ struct ext4_group_desc *get_group_descriptor(int n)
     off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
     bg_off += n * get_group_desc_size();
 
-    read_disk(bg_off, get_group_desc_size(), ret);
+    disk_read(bg_off, get_group_desc_size(), ret);
 
     return ret;
 }
@@ -124,7 +116,7 @@ struct ext4_inode *get_inode(uint32_t inode_num)
     off_t inode_off = BLOCKS2BYTES(gdesc->bg_inode_table_lo)
                     + (inode_num % ext4_sb->s_inodes_per_group) * ext4_sb->s_inode_size;
 
-    read_disk(inode_off, ext4_sb->s_inode_size, ret);
+    disk_read(inode_off, ext4_sb->s_inode_size, ret);
 
     return ret;
 }
@@ -198,14 +190,14 @@ struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
     struct ext4_extent_header ext_h;
     struct ext4_extent *exts;
 
-    read_disk(BLOCKS2BYTES(leaf_block), sizeof(struct ext4_extent_header), &ext_h);
+    disk_read(BLOCKS2BYTES(leaf_block), sizeof(struct ext4_extent_header), &ext_h);
     ASSERT(ext_h.eh_depth == 0);
 
     uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
     exts = malloc(extents_length);
 
     uint64_t where = BLOCKS2BYTES(leaf_block) + sizeof(struct ext4_extent);
-    read_disk(where, extents_length, exts);
+    disk_read(where, extents_length, exts);
 
     if (n_entries) *n_entries = ext_h.eh_entries;
     return exts;
@@ -248,7 +240,7 @@ int get_block_from_extents(struct ext4_extent *ee, uint32_t n_entries, uint32_t 
     }
     ASSERT(i != n_entries);
 
-    read_disk_block(ee[block_ext_index].ee_start_lo + block_ext_offset, block);
+    disk_read_block(ee[block_ext_index].ee_start_lo + block_ext_offset, block);
     return 0;
 }
 
@@ -286,7 +278,7 @@ int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32
         ASSERT(n <= BYTES2BLOCKS(inode->i_size_lo));
 
         if (n < MAX_DIRECTED_BLOCK) {
-            read_disk_block(inode->i_block[n], block);
+            disk_read_block(inode->i_block[n], block);
             return 0;
         }
 
@@ -294,8 +286,8 @@ int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32
             uint32_t indirect_block[get_block_size()];
             uint32_t indirect_index = n - MAX_DIRECTED_BLOCK;
 
-            read_disk_block(INDIRECT_BLOCK_L1, indirect_block);
-            read_disk_block(indirect_block[indirect_index], block);
+            disk_read_block(INDIRECT_BLOCK_L1, indirect_block);
+            disk_read_block(indirect_block[indirect_index], block);
             return 0;
         }
 
@@ -369,7 +361,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
 int e4flib_initialize(char *fs_file)
 {
-    if (open_disk(fs_file) < 0) {
+    if (disk_open(fs_file) < 0) {
         DEBUG("Couldn't initialize disk");
         return -1;
     }

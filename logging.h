@@ -1,3 +1,6 @@
+#ifndef LOGGING_H
+#define LOGGING_H
+
 #define LOG_EMERG   0
 #define LOG_ALERT   1
 #define LOG_CRIT    2
@@ -34,3 +37,5 @@
 void __LOG(int level, const char *func, int line, const char *format, ...);
 void logging_setlevel(int new_level);
 int logging_open(const char *path);
+
+#endif

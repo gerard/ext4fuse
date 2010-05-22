@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2010, Gerard Lledó Vives, gerard.lledo@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation. See README and COPYING for
+ * more details.
+ */
+
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -9,7 +19,7 @@
 
 static int disk_fd = -1;
 
-int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
+int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
 {
     static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
     ssize_t read_ret;
@@ -29,7 +39,7 @@ int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
     return 0;
 }
 
-int open_disk(const char *path)
+int disk_open(const char *path)
 {
     disk_fd = open(path, O_RDONLY);
     if (disk_fd < 0) {
