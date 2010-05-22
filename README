@@ -23,4 +23,4 @@ $ ./ext4fuse /dev/sda1 mountpoint [optional-logfile]
 
 At least on Leopard, you need to add your user to the operator group so you can
 have readonly permissions to the disks.  Use this:
-$ dscl . append /Groups/operator GroupMembership <your-user>
+$ sudo dscl . append /Groups/operator GroupMembership <your-user>
