@@ -6,8 +6,11 @@ BINARY = ext4fuse
 ext4fuse: e4flib.o fuse-main.o op_readlink.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-test: $(BINARY)
+test-slow: $(BINARY)
 	@for T in test/[0-9]*; do ./$$T; done
+
+test: $(BINARY)
+	@for T in test/[0-9]*; do SKIP_SLOW_TESTS=1 ./$$T; done
 
 clean:
 	rm -f *.o $(BINARY)

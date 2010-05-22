@@ -4,6 +4,8 @@ source `dirname $0`/lib.sh
 
 echo -n "`basename $0`: "
 
+[ -n "$SKIP_SLOW_TESTS" ] && echo SKIPPED && exit 0
+
 # Make a random file, and store the md5
 TMP_FILE=`mktemp`
 dd if=/dev/urandom of=$TMP_FILE bs=800 count=$((1024 * 1024)) &> /dev/null
