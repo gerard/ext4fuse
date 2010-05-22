@@ -32,6 +32,7 @@
 #include "e4flib.h"
 #include "ops.h"
 
+#define DEFAULT_LOG_FILE    "/dev/null"
 
 void signal_handle_sigsegv(int signal)
 {
@@ -204,22 +205,19 @@ static struct fuse_operations e4f_ops = {
 
 int main(int argc, char *argv[])
 {
-    char logfile[256];
-
-    if (argc < 2) {
-        printf("I need one filesystem to mount\n");
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s fs mountpoint\n", argv[0]);
+        return EXIT_FAILURE;
     }
-
-    if (e4flib_initialize(argv[1]) < 0) {
-        printf("Failed to initialize ext4fuse\n");
-    }
-
-    snprintf(logfile, 255, "%s/%s", getenv("HOME"), ".ext4fuse.log");
-    e4flib_logfile(logfile);
 
     signal(SIGSEGV, signal_handle_sigsegv);
 
-    argc--;
+    e4flib_logfile(argc == 4 ? argv[3] : DEFAULT_LOG_FILE);
+    if (e4flib_initialize(argv[1]) < 0) {
+        fprintf(stderr, "Failed to initialize ext4fuse\n");
+    }
+
+    argc = 2;
     argv[1] = argv[2];
     argv[2] = NULL;
 

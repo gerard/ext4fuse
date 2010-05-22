@@ -393,7 +393,6 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
 int e4flib_initialize(char *fs_file)
 {
-    logfile_fd = stderr;
     fd = open(fs_file, O_RDONLY);
     if (fd == -1) {
         perror("open");
