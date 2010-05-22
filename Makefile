@@ -14,5 +14,6 @@ test: $(BINARY)
 
 clean:
 	rm -f *.o $(BINARY)
+	rm -rf test/logs
 
 .PHONY: test

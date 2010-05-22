@@ -45,3 +45,9 @@ function e4test_check_log {
         exit 1
     fi
 }
+
+function e4test_mountpoint_struct_md5 {
+    # Here we skip lost+found since user doesn't normally have permission to
+    # read it.  find(1) sure has a trippy syntax...
+    find $MOUNTPOINT -name lost+found -prune -o -name \* | sort | md5sum | cut -d\  -f1
+}

@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+source `dirname $0`/lib.sh
+
+echo -n "`basename $0`: "
+
+e4test_make_LOGFILE
+e4test_make_FS 16
+e4test_make_MOUNTPOINT
+
+e4test_mount
+mkdir -p $MOUNTPOINT/dir{a,b,c,d,e,f}{a,b,c,d,e,f}/{0,1,2,3,4,5,6,7,8,9}
+DIRS_MD5=`e4test_mountpoint_struct_md5`
+e4test_umount
+
+# Check the md5 after mount using fuse
+e4test_fuse_mount
+FUSE_MD5=`e4test_mountpoint_struct_md5`
+e4test_fuse_umount
+e4test_check_log
+
+rm $FS
+
+if [ "$FUSE_MD5" = "$DIRS_MD5" ]
+then
+    echo PASS
+else
+    echo FAIL
+fi
