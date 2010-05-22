@@ -131,7 +131,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     size_t first_size;
     int ret;
 
-    E4F_DEBUG("read(%s, buf, %zd, %zd, fi)", path, size, offset);
+    E4F_DEBUG("read(%s, buf, %jd, %zd, fi)", path, size, offset);
 
     if ((ret = e4flib_lookup_path(path, &inode))) {
         return ret;
@@ -167,7 +167,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
 
     /* First block, might be missaligned */
     e4flib_get_block_from_inode(inode, block, n_block_start);
-    E4F_DEBUG("read(2): Initial chunk: %zx [%i:%zd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
+    E4F_DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
     memcpy(buf, block + block_start_offset, first_size);
     buf += first_size;
 

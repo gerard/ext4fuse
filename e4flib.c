@@ -23,14 +23,13 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <pthread.h>
 
 #include "ext4.h"
 #include "e4flib.h"
+#include "disk.h"
 
 #define BOOT_SECTOR_SIZE            0x400
 #define GROUP_DESC_MIN_SIZE         0x20
@@ -43,15 +42,9 @@
 struct ext4_super_block *ext4_sb;
 struct ext4_group_desc **ext4_gd_table;
 struct ext4_inode *root_inode;
-int fd;
 FILE *logfile_fd = NULL;
 
 /* NOTE: We just suppose this runs on LE machines! */
-
-#define read_disk(__where, __size, __p)         __read_disk(__where, __size, __p, __func__, __LINE__)
-
-#define read_disk_block(__block, __p)           read_disk_blocks(__block, 1, __p)
-#define read_disk_blocks(__blocks, __n, __p)    __read_disk(BLOCKS2BYTES(__blocks), BLOCKS2BYTES(__n), __p, __func__, __LINE__)
 
 #define E4F_FREE(__ptr)    ({           \
     free(__ptr);                        \
@@ -69,24 +62,6 @@ FILE *logfile_fd = NULL;
 
 uint32_t get_block_size(void) {
     return 1 << (ext4_sb->s_log_block_size + 10);
-}
-
-int __read_disk(off_t where, size_t size, void *p, const char *func, int line)
-{
-    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-    ssize_t read_ret;
-    off_t lseek_ret;
-
-    pthread_mutex_lock(&lock);
-    E4F_DEBUG("Disk Read: 0x%08llx +0x%zx [%s:%d]", where, size, func, line);
-    lseek_ret = lseek(fd, where, SEEK_SET);
-    read_ret = read(fd, p, size);
-    pthread_mutex_unlock(&lock);
-
-    E4F_ASSERT(lseek_ret == where);
-    E4F_ASSERT(read_ret == size);
-
-    return 0;
 }
 
 uint32_t get_block_group_size(void)
@@ -393,9 +368,8 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
 int e4flib_initialize(char *fs_file)
 {
-    fd = open(fs_file, O_RDONLY);
-    if (fd == -1) {
-        perror("open");
+    if (open_disk(fs_file) < 0) {
+        E4F_DEBUG("Couldn't initialize disk");
         return -1;
     }
 
