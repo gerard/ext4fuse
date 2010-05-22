@@ -1,0 +1,22 @@
+=== ext4fuse ===
+This is a implementation of ext4 for FUSE.  A quite limited one, I should say,
+but still able to mount my ubuntu 10.04 partition.  The main reason this exists
+is to be able to read it from OSX.
+
+Of course, this is only readonly, and it should be safe to use.  In the worst
+case scenario you won't be able to mount anything (although I believe that
+should work).  Write support is not going to come for some time: first I should
+address some design issues, make some tests and get some respectable read
+performance.
+
+If you notice a problem, please fill a bug report, preferably with a logfile
+attached.  You can use the github tracker:
+  * http://github.com/gerard/ext4fuse/issues
+
+You can also drop a mail.  I'd like to know if someone else is using this
+besides me.
+  * gerard.lledo@gmail.com
+
+=== Usage ===
+Compile using "make".  You can mount a filesystem like this:
+$ ./ext4fuse /dev/sda1 mountpoint [optional-logfile]
