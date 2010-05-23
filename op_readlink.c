@@ -30,7 +30,7 @@ static int get_link_dest(struct ext4_inode *inode, char *buf)
         /* Link destination fits in inode */
         memcpy(buf, inode->i_block, inode->i_size_lo);
     } else {
-        e4flib_get_block_from_inode(inode, (uint8_t *)buf, inode->i_block[0]);
+        e4flib_get_block_from_inode(inode, (uint8_t *)buf, 0);
     }
 
     buf[inode->i_size_lo] = 0;
