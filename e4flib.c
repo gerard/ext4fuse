@@ -145,7 +145,8 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 
     DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
     for (int i = 0; i < n_blocks; i++) {
-        ASSERT(e4flib_get_block_from_inode(inode, blocks + BLOCKS2BYTES(i), i) == 0);
+        int ret = e4flib_get_block_from_inode(inode, blocks + BLOCKS2BYTES(i), i);
+        ASSERT(ret == 0);
     }
 
     return blocks;
