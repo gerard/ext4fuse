@@ -1,6 +1,8 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include <assert.h>
+
 #define LOG_EMERG   0
 #define LOG_ALERT   1
 #define LOG_CRIT    2

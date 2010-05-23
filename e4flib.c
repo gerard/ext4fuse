@@ -19,23 +19,18 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "common.h"
 #include "ext4.h"
 #include "e4flib.h"
 #include "disk.h"
 #include "logging.h"
+#include "super.h"
 
-#define BOOT_SECTOR_SIZE            0x400
-#define GROUP_DESC_MIN_SIZE         0x20
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
 #define MAX_DIRECTED_BLOCK          12
 #define INDIRECT_BLOCK_L1           12
-#define MAX_INDIRECTED_BLOCK        MAX_DIRECTED_BLOCK + (get_block_size() / sizeof(uint32_t))
-
-struct ext4_super_block *ext4_sb;
-struct ext4_group_desc **ext4_gd_table;
-struct ext4_inode *root_inode;
-FILE *logfile_fd = NULL;
+#define MAX_INDIRECTED_BLOCK        MAX_DIRECTED_BLOCK + (BLOCK_SIZE / sizeof(uint32_t))
 
 /* NOTE: We just suppose this runs on LE machines! */
 
@@ -44,86 +39,24 @@ FILE *logfile_fd = NULL;
     (__ptr) = NULL;                     \
 })
 
-#define ALIGN_TO_BLOCKSIZE(__n) ({                                      \
-    typeof (__n) __ret;                                                 \
-    if ((__n) % get_block_size()) {                                     \
-        __ret = ((__n) & (~(get_block_size() - 1))) + get_block_size(); \
-    } else __ret = (__n);                                               \
-    __ret;                                                              \
-})
-
-
-uint32_t get_block_size(void) {
-    return 1 << (ext4_sb->s_log_block_size + 10);
-}
-
-uint32_t get_block_group_size(void)
-{
-    return BLOCKS2BYTES(ext4_sb->s_blocks_per_group);
-}
-
-uint32_t get_n_block_groups(void)
-{
-    return ext4_sb->s_blocks_count_lo / ext4_sb->s_blocks_per_group;
-}
-
-uint32_t get_group_desc_size(void)
-{
-    if (!ext4_sb->s_desc_size) return GROUP_DESC_MIN_SIZE;
-    else return sizeof(struct ext4_group_desc);
-}
-
-struct ext4_super_block *get_super_block(void)
-{
-    struct ext4_super_block *ret = malloc(sizeof(struct ext4_super_block));
-
-    disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), ret);
-
-    if (ret->s_magic != 0xEF53) return NULL;
-    else return ret;
-}
-
-struct ext4_group_desc *get_group_descriptor(int n)
-{
-    struct ext4_group_desc *ret = malloc(sizeof(struct ext4_group_desc));
-    off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
-    bg_off += n * get_group_desc_size();
-
-    disk_read(bg_off, get_group_desc_size(), ret);
-
-    return ret;
-}
-
-uint32_t get_block_group_for_inode(uint32_t inode_num)
-{
-    return inode_num / ext4_sb->s_inodes_per_group;
-}
 
 struct ext4_inode *get_inode(uint32_t inode_num)
 {
     if (inode_num == 0) return NULL;
     inode_num--;    /* Inode 0 doesn't exist on disk */
 
-    /* We might not read the whole struct if disk inodes are smaller */
-    struct ext4_inode *ret = malloc(ext4_sb->s_inode_size);
-    memset(ret, 0, ext4_sb->s_inode_size);
+    struct ext4_inode *ret = malloc(super_inode_size());
+    memset(ret, 0, super_inode_size());
 
-    struct ext4_group_desc *gdesc = ext4_gd_table[get_block_group_for_inode(inode_num)];
-    // Rewrite better this assert, some group descriptors are smaller than
-    // the offset of this fields so the outcome is based on radom memory
-    //ASSERT(gdesc->bg_inode_table_hi == 0);
+    off_t inode_off = super_group_inode_table_offset(inode_num);
+    inode_off += (inode_num % super_inodes_per_group()) * super_inode_size();
 
-    off_t inode_off = BLOCKS2BYTES(gdesc->bg_inode_table_lo)
-                    + (inode_num % ext4_sb->s_inodes_per_group) * ext4_sb->s_inode_size;
-
-    disk_read(inode_off, ext4_sb->s_inode_size, ret);
-
+    disk_read(inode_off, super_inode_size(), ret);
     return ret;
 }
 
 void e4flib_free_inode(struct ext4_inode *inode)
 {
-    if (inode == root_inode) return;
     E4F_FREE(inode);
 }
 
@@ -208,7 +141,7 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
     /* NOTE: We cannot use i_blocks and friends, because those count the
      * overhead caused by indirection blocks and extent blocks */
     uint32_t n_blocks = BYTES2BLOCKS(inode->i_size_lo);
-    uint8_t *blocks = malloc_blocks(n_blocks);
+    uint8_t *blocks = MALLOC_BLOCKS(n_blocks);
 
     DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
     for (int i = 0; i < n_blocks; i++) {
@@ -283,7 +216,7 @@ int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32
         }
 
         if (n < MAX_INDIRECTED_BLOCK) {
-            uint32_t indirect_block[get_block_size()];
+            uint32_t indirect_block[BLOCK_SIZE];
             uint32_t indirect_index = n - MAX_DIRECTED_BLOCK;
 
             disk_read_block(INDIRECT_BLOCK_L1, indirect_block);
@@ -317,12 +250,13 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
         return -ENOENT;
     }
 
-    lookup_inode = root_inode;
+    /* FIXME: 2 is the ROOT_INODE.  Add a #define. */
+    lookup_inode = get_inode(2);
 
     do {
         path++; /* Skip over the slash */
         if (!*path) { /* Root inode */
-            *ret_inode = root_inode;
+            *ret_inode = lookup_inode;
             return 0;
         }
 
@@ -366,30 +300,5 @@ int e4flib_initialize(char *fs_file)
         return -1;
     }
 
-    if ((ext4_sb = get_super_block()) == NULL) {
-        DEBUG("No ext4 format found");
-        return -1;
-    }
-
-    ext4_gd_table = malloc(sizeof(struct ext4_group_desc *) * get_n_block_groups());
-    for (int i = 0; i < get_n_block_groups(); i++) {
-        ext4_gd_table[i] = get_group_descriptor(i);
-    }
-
-    root_inode = get_inode(2);
-
-    return 0;
-}
-
-int e4flib_logfile(const char *logfile)
-{
-    FILE *lf_fd = fopen(logfile, "w");
-    if (lf_fd == NULL) {
-        perror("open");
-        return -1;
-    }
-
-    setbuf(lf_fd, NULL);
-    logfile_fd = lf_fd;
     return 0;
 }

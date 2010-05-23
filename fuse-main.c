@@ -20,10 +20,11 @@
 #include <signal.h>
 #include <execinfo.h>
 
-#include "ext4.h"
+#include "common.h"
 #include "e4flib.h"
 #include "ops.h"
 #include "logging.h"
+#include "ext4.h"
 
 
 void signal_handle_sigsegv(int signal)
@@ -141,25 +142,25 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
         size = inode->i_size_lo - offset;
     }
 
-    n_block_start = offset / get_block_size();
-    n_block_end = (offset + (size - 1)) / get_block_size();
-    block_start_offset = offset % get_block_size();
+    n_block_start = offset / BLOCK_SIZE;
+    n_block_end = (offset + (size - 1)) / BLOCK_SIZE;
+    block_start_offset = offset % BLOCK_SIZE;
 
     /* If the read request spans over several blocks, we will just return the
      * data contained in the first one */
     if (n_block_start != n_block_end) {
-        first_size = ((n_block_start + 1) * get_block_size()) - offset;
+        first_size = ((n_block_start + 1) * BLOCK_SIZE) - offset;
         ASSERT(size >= first_size);
     } else {
         first_size = size;
     }
 
 
-    block = malloc_blocks(1);
+    block = MALLOC_BLOCKS(1);
 
     /* First block, might be missaligned */
     e4flib_get_block_from_inode(inode, block, n_block_start);
-    DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s\n", offset, n_block_start, block_start_offset, first_size, path);
+    DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s", offset, n_block_start, block_start_offset, first_size, path);
     memcpy(buf, block + block_start_offset, first_size);
     buf += first_size;
 
@@ -168,16 +169,16 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
 
         if (i == n_block_end) {
             DEBUG("read(2): End chunk");
-            if ((offset + size) % get_block_size() == 0) {
-                memcpy(buf, block, get_block_size());
+            if ((offset + size) % BLOCK_SIZE == 0) {
+                memcpy(buf, block, BLOCK_SIZE);
             } else {
-                memcpy(buf, block, (offset + size) % get_block_size());
+                memcpy(buf, block, (offset + size) % BLOCK_SIZE);
             }
             /* No need to increase the buffer pointer */
         } else {
             DEBUG("read(2): Middle chunk");
-            memcpy(buf, block, get_block_size());
-            buf += get_block_size();
+            memcpy(buf, block, BLOCK_SIZE);
+            buf += BLOCK_SIZE;
         }
     }
 

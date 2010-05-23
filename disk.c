@@ -28,7 +28,7 @@ int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
     ASSERT(disk_fd >= 0);
 
     pthread_mutex_lock(&lock);
-    DEBUG("Disk Read: 0x%jd +0x%zx [%s:%d]", where, size, func, line);
+    DEBUG("Disk Read: 0x%jx +0x%zx [%s:%d]", where, size, func, line);
     lseek_ret = lseek(disk_fd, where, SEEK_SET);
     read_ret = read(disk_fd, p, size);
     pthread_mutex_unlock(&lock);

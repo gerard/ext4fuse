@@ -15,6 +15,7 @@
 
 #include "ext4.h"
 #include "e4flib.h"
+#include "logging.h"
 
 #define MIN(x, y)   ({                  \
     typeof (x) __x = (x);               \
@@ -49,6 +50,7 @@ int e4f_readlink(const char *path, char *buf, size_t bufsize)
     }
 
     get_link_dest(inode, buf);
+    DEBUG("Link resolved: %s => %s", path, buf);
 
 fail:
     e4flib_free_inode(inode);
