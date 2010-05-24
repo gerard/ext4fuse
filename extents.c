@@ -16,7 +16,7 @@
 #include "logging.h"
 
 /* Calculates the physical block from a given logical block and extent */
-static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, int n_ee, uint32_t lblock)
+static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, int n_ee, uint32_t lblock, uint32_t *extent)
 {
     uint32_t block_ext_index = 0;
     uint32_t block_ext_offset = 0;
@@ -32,6 +32,7 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, int n_ee, uint
         if (ee[i].ee_block + ee[i].ee_len > lblock) {
             block_ext_index = i;
             block_ext_offset = lblock - ee[i].ee_block;
+            if (extent) *extent = ee[i].ee_block + ee[i].ee_len - lblock - 1;
             break;
         }
     }
@@ -61,7 +62,7 @@ static struct ext4_extent *extent_get_eentries_in_block(uint32_t block, int *n_e
 }
 
 /* Returns the physical block number */
-uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock)
+uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock, uint32_t *extent)
 {
     ASSERT(inode_ext->eh.eh_magic == EXT4_EXT_MAGIC);
     ASSERT(inode_ext->eh.eh_entries <= 4);
@@ -83,5 +84,5 @@ uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock)
         ee_array = extent_get_eentries_in_block(inode_ext->ei[0].ei_leaf_lo, &n_entries);
     }
 
-    return extent_get_block_from_ees(ee_array, n_entries, lblock);
+    return extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
 }

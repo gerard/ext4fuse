@@ -91,7 +91,7 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 
     DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
     for (uint32_t i = 0; i < n_blocks; i++) {
-        uint64_t pblock = inode_get_data_pblock(inode, i);
+        uint64_t pblock = inode_get_data_pblock(inode, i, NULL);
         ASSERT(pblock != 0);
 
         disk_read_block(pblock, buf + BLOCKS2BYTES(i));

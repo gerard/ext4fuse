@@ -159,7 +159,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     void *tmp_buf = MALLOC_BLOCKS(1);
 
     /* First block, might be missaligned */
-    uint64_t pblock = inode_get_data_pblock(inode, n_block_start);
+    uint64_t pblock = inode_get_data_pblock(inode, n_block_start, NULL);
     disk_read_block(pblock, tmp_buf);
 
     DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s", offset, n_block_start, block_start_offset, first_size, path);
@@ -167,7 +167,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     buf += first_size;
 
     for (int i = n_block_start + 1; i <= n_block_end; i++) {
-        pblock = inode_get_data_pblock(inode, i);
+        pblock = inode_get_data_pblock(inode, i, NULL);
         disk_read_block(pblock, tmp_buf);
 
         if (i == n_block_end) {

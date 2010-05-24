@@ -11,6 +11,6 @@ struct ext4_inode_extent {
     };
 };
 
-uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock);
+uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock, uint32_t *extent);
 
 #endif

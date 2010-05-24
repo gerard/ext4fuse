@@ -13,14 +13,17 @@
 #define INDIRECT_BLOCK_L1           12
 #define MAX_INDIRECTED_BLOCK        MAX_DIRECTED_BLOCK + (BLOCK_SIZE / sizeof(uint32_t))
 
-
-uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock)
+/* Get pblock for a given inode and lblock.  If extent is not NULL, it will
+ * store the length of extent, that is, the number of consecutive pblocks
+ * that are also consecutive lblocks (not counting the requested one). */
+uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent)
 {
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         struct ext4_inode_extent *inode_ext = (struct ext4_inode_extent *)&inode->i_block;
-        return extent_get_pblock(inode_ext, lblock);
+        return extent_get_pblock(inode_ext, lblock, extent);
     } else {
         ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
+        if (extent) *extent = 0;
 
         if (lblock < MAX_DIRECTED_BLOCK) {
             return inode->i_block[lblock];
