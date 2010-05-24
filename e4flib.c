@@ -91,44 +91,13 @@ uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 
     DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
     for (uint32_t i = 0; i < n_blocks; i++) {
-        uint64_t pblock = e4flib_get_pblock_from_inode(inode, i);
+        uint64_t pblock = inode_get_data_pblock(inode, i);
         ASSERT(pblock != 0);
 
         disk_read_block(pblock, buf + BLOCKS2BYTES(i));
     }
 
     return buf;
-}
-
-uint64_t e4flib_get_pblock_from_inode(struct ext4_inode *inode, uint32_t lblock)
-{
-    uint64_t pblock = 0;
-
-    if (inode->i_flags & EXT4_EXTENTS_FL) {
-        struct ext4_inode_extent *inode_ext = (struct ext4_inode_extent *)&inode->i_block;
-        pblock = extent_get_pblock(inode_ext, lblock);
-    } else {
-        ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
-
-        if (lblock < MAX_DIRECTED_BLOCK) {
-            pblock = inode->i_block[lblock];
-        }
-
-        else if (lblock < MAX_INDIRECTED_BLOCK) {
-            uint32_t indirect_block[BLOCK_SIZE];
-            uint32_t indirect_index = lblock - MAX_DIRECTED_BLOCK;
-
-            disk_read_block(INDIRECT_BLOCK_L1, indirect_block);
-            pblock = indirect_block[indirect_index];
-        }
-
-        else {
-            /* Handle this later (double-indirected block) */
-            ASSERT(0);
-        }
-    }
-
-    return pblock;
 }
 
 struct ext4_dir_entry_2 **e4flib_get_dentries_inode(struct ext4_inode *inode, int *n_read)

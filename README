@@ -28,3 +28,8 @@ $ sudo dscl . append /Groups/operator GroupMembership <your-user>
 === Limitations ===
  * All code is religiously Little Endian only.  If you don't know what this
    means, you are probably OK (ie, you are using x86 or x86-64).
+ * Block numbers over 32 bits aren't supported.  You hit those when you reach
+   around the terabyte, and I don't have any way to test that.  It should be
+   quite easy to fix, but I don't feel like spending time on something that
+   neither has a use for me or can be proved to be correct.  I don't have such
+   big disks :P
