@@ -26,6 +26,7 @@
 #include "disk.h"
 #include "logging.h"
 #include "super.h"
+#include "inode.h"
 
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
@@ -33,33 +34,10 @@
 #define INDIRECT_BLOCK_L1           12
 #define MAX_INDIRECTED_BLOCK        MAX_DIRECTED_BLOCK + (BLOCK_SIZE / sizeof(uint32_t))
 
-/* NOTE: We just suppose this runs on LE machines! */
-
 #define E4F_FREE(__ptr)    ({           \
     free(__ptr);                        \
     (__ptr) = NULL;                     \
 })
-
-
-struct ext4_inode *get_inode(uint32_t inode_num)
-{
-    if (inode_num == 0) return NULL;
-    inode_num--;    /* Inode 0 doesn't exist on disk */
-
-    struct ext4_inode *ret = malloc(super_inode_size());
-    memset(ret, 0, super_inode_size());
-
-    off_t inode_off = super_group_inode_table_offset(inode_num);
-    inode_off += (inode_num % super_inodes_per_group()) * super_inode_size();
-
-    disk_read(inode_off, super_inode_size(), ret);
-    return ret;
-}
-
-void e4flib_free_inode(struct ext4_inode *inode)
-{
-    E4F_FREE(inode);
-}
 
 
 /* We assume that the data block is a directory */
@@ -174,7 +152,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
     }
 
     /* FIXME: 2 is the ROOT_INODE.  Add a #define. */
-    lookup_inode = get_inode(2);
+    lookup_inode = inode_get(2);
 
     do {
         path++; /* Skip over the slash */
@@ -187,7 +165,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
         lookup_blocks = e4flib_get_data_blocks_from_inode(lookup_inode);
         dir_entries = get_all_directory_entries(lookup_blocks, lookup_inode->i_size_lo, &n_entries);
-        e4flib_free_inode(lookup_inode);
+        inode_put(lookup_inode);
 
         int i;
         for (i = 0; i < n_entries; i++) {
@@ -198,7 +176,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
 
             if (!memcmp(path, dir_entries[i]->name, dir_entries[i]->name_len)) {
                 DEBUG("Lookup following inode %d", dir_entries[i]->inode);
-                lookup_inode = get_inode(dir_entries[i]->inode);
+                lookup_inode = inode_get(dir_entries[i]->inode);
 
                 break;
             }
@@ -211,7 +189,7 @@ int e4flib_lookup_path(const char *path, struct ext4_inode **ret_inode)
     } while((path = strchr(path, '/')));
 
     if (ret_inode) *ret_inode = lookup_inode;
-    else e4flib_free_inode(lookup_inode);
+    else inode_put(lookup_inode);
 
     return 0;
 }

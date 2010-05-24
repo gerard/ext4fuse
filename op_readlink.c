@@ -17,6 +17,7 @@
 #include "e4flib.h"
 #include "logging.h"
 #include "disk.h"
+#include "inode.h"
 
 
 static int get_link_dest(struct ext4_inode *inode, char *buf)
@@ -49,6 +50,6 @@ int e4f_readlink(const char *path, char *buf, size_t bufsize)
     DEBUG("Link resolved: %s => %s", path, buf);
 
 fail:
-    e4flib_free_inode(inode);
+    inode_put(inode);
     return ret;
 }

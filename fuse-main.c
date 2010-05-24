@@ -26,6 +26,7 @@
 #include "logging.h"
 #include "ext4.h"
 #include "disk.h"
+#include "inode.h"
 
 void signal_handle_sigsegv(int signal)
 {
@@ -71,7 +72,7 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
     stbuf->st_mtime = inode->i_mtime;
     stbuf->st_ctime = inode->i_ctime;
 
-    e4flib_free_inode(inode);
+    inode_put(inode);
 
     return 0;
 }
@@ -99,7 +100,7 @@ static int e4f_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     /* Nasty, but works... This points to the allocated data blocks */
     free(entries[0]);
     free(entries);
-    e4flib_free_inode(inode);
+    inode_put(inode);
 
     return 0;
 }
@@ -184,7 +185,7 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
         }
     }
 
-    e4flib_free_inode(inode);
+    inode_put(inode);
     free(tmp_buf);
 
     return size;
