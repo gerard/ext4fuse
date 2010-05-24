@@ -2,6 +2,7 @@
 #define SUPER_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 /* struct ext4_super */
 uint32_t super_block_size(void);
