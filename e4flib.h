@@ -17,6 +17,6 @@ struct ext4_dir_entry_2 **e4flib_get_dentries_inode(struct ext4_inode *inode, in
 int e4flib_logfile(const char *logfile);
 uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode);
 uint32_t get_block_size(void);
-int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32_t n);
+uint64_t e4flib_get_pblock_from_inode(struct ext4_inode *inode, uint32_t lblock);
 
 #endif

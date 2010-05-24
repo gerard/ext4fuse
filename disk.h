@@ -2,6 +2,7 @@
 #define DISK_H
 
 #include <sys/types.h>
+#include "common.h"
 
 #define disk_read(__where, __size, __p)         __disk_read(__where, __size, __p, __func__, __LINE__)
 #define disk_read_block(__block, __p)           disk_read_blocks(__block, 1, __p)

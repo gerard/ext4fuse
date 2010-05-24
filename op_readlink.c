@@ -16,12 +16,7 @@
 #include "ext4.h"
 #include "e4flib.h"
 #include "logging.h"
-
-#define MIN(x, y)   ({                  \
-    typeof (x) __x = (x);               \
-    typeof (y) __y = (y);               \
-    __x < __y ? __x : __y;              \
-})
+#include "disk.h"
 
 
 static int get_link_dest(struct ext4_inode *inode, char *buf)
@@ -30,7 +25,8 @@ static int get_link_dest(struct ext4_inode *inode, char *buf)
         /* Link destination fits in inode */
         memcpy(buf, inode->i_block, inode->i_size_lo);
     } else {
-        e4flib_get_block_from_inode(inode, (uint8_t *)buf, 0);
+        uint64_t pblock = e4flib_get_pblock_from_inode(inode, 0);
+        disk_read_block(pblock, (uint8_t *)buf);
     }
 
     buf[inode->i_size_lo] = 0;

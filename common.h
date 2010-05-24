@@ -1,8 +1,20 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdint.h>
 #include <stdlib.h>
+
 #include "super.h"
+
+
+#define __le64      uint64_t
+#define __le32      uint32_t
+#define __le16      uint16_t
+#define __u64       uint64_t
+#define __u32       uint32_t
+#define __u16       uint16_t
+#define __u8        uint8_t
+
 
 #define BLOCK_SIZE                              (super_block_size())
 #define BLOCKS2BYTES(__blks)                    (((uint64_t)(__blks)) * BLOCK_SIZE)

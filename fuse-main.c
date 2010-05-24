@@ -25,7 +25,7 @@
 #include "ops.h"
 #include "logging.h"
 #include "ext4.h"
-
+#include "disk.h"
 
 void signal_handle_sigsegv(int signal)
 {
@@ -118,7 +118,6 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
                     struct fuse_file_info *fi)
 {
     struct ext4_inode *inode;
-    uint8_t *block;
     uint32_t n_block_start, n_block_end;
     off_t block_start_offset;
     size_t first_size;
@@ -156,34 +155,37 @@ static int e4f_read(const char *path, char *buf, size_t size, off_t offset,
     }
 
 
-    block = MALLOC_BLOCKS(1);
+    void *tmp_buf = MALLOC_BLOCKS(1);
 
     /* First block, might be missaligned */
-    e4flib_get_block_from_inode(inode, block, n_block_start);
+    uint64_t pblock = e4flib_get_pblock_from_inode(inode, n_block_start);
+    disk_read_block(pblock, tmp_buf);
+
     DEBUG("read(2): Initial chunk: %jx [%i:%jd] +%zd bytes from %s", offset, n_block_start, block_start_offset, first_size, path);
-    memcpy(buf, block + block_start_offset, first_size);
+    memcpy(buf, tmp_buf + block_start_offset, first_size);
     buf += first_size;
 
     for (int i = n_block_start + 1; i <= n_block_end; i++) {
-        e4flib_get_block_from_inode(inode, block, i);
+        pblock = e4flib_get_pblock_from_inode(inode, i);
+        disk_read_block(pblock, tmp_buf);
 
         if (i == n_block_end) {
             DEBUG("read(2): End chunk");
             if ((offset + size) % BLOCK_SIZE == 0) {
-                memcpy(buf, block, BLOCK_SIZE);
+                memcpy(buf, tmp_buf, BLOCK_SIZE);
             } else {
-                memcpy(buf, block, (offset + size) % BLOCK_SIZE);
+                memcpy(buf, tmp_buf, (offset + size) % BLOCK_SIZE);
             }
             /* No need to increase the buffer pointer */
         } else {
             DEBUG("read(2): Middle chunk");
-            memcpy(buf, block, BLOCK_SIZE);
+            memcpy(buf, tmp_buf, BLOCK_SIZE);
             buf += BLOCK_SIZE;
         }
     }
 
     e4flib_free_inode(inode);
-    free(block);
+    free(tmp_buf);
 
     return size;
 }

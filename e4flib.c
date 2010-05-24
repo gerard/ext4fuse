@@ -21,6 +21,7 @@
 
 #include "common.h"
 #include "ext4.h"
+#include "extents.h"
 #include "e4flib.h"
 #include "disk.h"
 #include "logging.h"
@@ -103,132 +104,53 @@ uint8_t get_path_token_len(const char *path)
     return len;
 }
 
-struct ext4_extent_header *get_extent_header_from_inode(struct ext4_inode *inode)
-{
-    return (struct ext4_extent_header *)inode->i_block;
-}
-
-struct ext4_extent *get_extents_from_ext_header(struct ext4_extent_header *h)
-{
-    return (struct ext4_extent *)(((char *)h) + sizeof(struct ext4_extent_header));
-}
-
-struct ext4_extent_idx *get_extent_idxs_from_ext_header(struct ext4_extent_header *h)
-{
-    return (struct ext4_extent_idx *)(((char *)h) + sizeof(struct ext4_extent_header));
-}
-
-struct ext4_extent *get_extent_from_leaf(uint32_t leaf_block, int *n_entries)
-{
-    struct ext4_extent_header ext_h;
-    struct ext4_extent *exts;
-
-    disk_read(BLOCKS2BYTES(leaf_block), sizeof(struct ext4_extent_header), &ext_h);
-    ASSERT(ext_h.eh_depth == 0);
-
-    uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
-    exts = malloc(extents_length);
-
-    uint64_t where = BLOCKS2BYTES(leaf_block) + sizeof(struct ext4_extent);
-    disk_read(where, extents_length, exts);
-
-    if (n_entries) *n_entries = ext_h.eh_entries;
-    return exts;
-}
-
 uint8_t *e4flib_get_data_blocks_from_inode(struct ext4_inode *inode)
 {
     /* NOTE: We cannot use i_blocks and friends, because those count the
      * overhead caused by indirection blocks and extent blocks */
     uint32_t n_blocks = BYTES2BLOCKS(inode->i_size_lo);
-    uint8_t *blocks = MALLOC_BLOCKS(n_blocks);
+    uint8_t *buf = MALLOC_BLOCKS(n_blocks);
 
     DEBUG("Reading in bunch %d blocks [%d bytes]", n_blocks, inode->i_size_lo);
-    for (int i = 0; i < n_blocks; i++) {
-        int ret = e4flib_get_block_from_inode(inode, blocks + BLOCKS2BYTES(i), i);
-        ASSERT(ret == 0);
+    for (uint32_t i = 0; i < n_blocks; i++) {
+        uint64_t pblock = e4flib_get_pblock_from_inode(inode, i);
+        ASSERT(pblock != 0);
+
+        disk_read_block(pblock, buf + BLOCKS2BYTES(i));
     }
 
-    return blocks;
+    return buf;
 }
 
-int get_block_from_extents(struct ext4_extent *ee, uint32_t n_entries, uint32_t n_block, uint8_t *block)
+uint64_t e4flib_get_pblock_from_inode(struct ext4_inode *inode, uint32_t lblock)
 {
-    int block_ext_index = 0;
-    int block_ext_offset = 0;
-    int i;
+    uint64_t pblock = 0;
 
-    DEBUG("Extent contains %d entries", n_entries);
-    DEBUG("Looking for LBlock %d", n_block);
-
-    /* Skip to the right extent entry */
-    for (i = 0; i < n_entries; i++) {
-        ASSERT(ee[i].ee_start_hi == 0);
-
-        if (ee[i].ee_block + ee[i].ee_len > n_block) {
-            block_ext_index = i;
-            block_ext_offset = n_block - ee[i].ee_block;
-            DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
-            break;
-        }
-    }
-    ASSERT(i != n_entries);
-
-    disk_read_block(ee[block_ext_index].ee_start_lo + block_ext_offset, block);
-    return 0;
-}
-
-int get_block_from_extent_header(struct ext4_extent_header *eh, uint32_t n, uint8_t *block)
-{
-    ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
-    ASSERT(eh->eh_entries <= 6);
-
-    if (eh->eh_depth == 0) {
-        struct ext4_extent *extents = get_extents_from_ext_header(eh);
-
-        return get_block_from_extents(extents, eh->eh_entries, n, block);
-    } else {
-        /* Not valid assertions, but we can deal with those later.  I really
-         * should have look how extent indexes work... */
-        ASSERT(eh->eh_depth == 1);
-        ASSERT(eh->eh_entries == 1);
-
-        int n_leaf_entries;
-        struct ext4_extent_idx *ei = get_extent_idxs_from_ext_header(eh);
-        struct ext4_extent *ee = get_extent_from_leaf(ei->ei_leaf_lo, &n_leaf_entries);
-
-        int ret = get_block_from_extents(ee, n_leaf_entries, n, block);
-        free(ee);
-        return ret;
-    }
-}
-
-int e4flib_get_block_from_inode(struct ext4_inode *inode, uint8_t *block, uint32_t n)
-{
     if (inode->i_flags & EXT4_EXTENTS_FL) {
-        struct ext4_extent_header *ext_header = get_extent_header_from_inode(inode);
-        return get_block_from_extent_header(ext_header, n, block);
+        struct ext4_inode_extent *inode_ext = (struct ext4_inode_extent *)&inode->i_block;
+        pblock = extent_get_pblock(inode_ext, lblock);
     } else {
-        ASSERT(n <= BYTES2BLOCKS(inode->i_size_lo));
+        ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
 
-        if (n < MAX_DIRECTED_BLOCK) {
-            disk_read_block(inode->i_block[n], block);
-            return 0;
+        if (lblock < MAX_DIRECTED_BLOCK) {
+            pblock = inode->i_block[lblock];
         }
 
-        if (n < MAX_INDIRECTED_BLOCK) {
+        else if (lblock < MAX_INDIRECTED_BLOCK) {
             uint32_t indirect_block[BLOCK_SIZE];
-            uint32_t indirect_index = n - MAX_DIRECTED_BLOCK;
+            uint32_t indirect_index = lblock - MAX_DIRECTED_BLOCK;
 
             disk_read_block(INDIRECT_BLOCK_L1, indirect_block);
-            disk_read_block(indirect_block[indirect_index], block);
-            return 0;
+            pblock = indirect_block[indirect_index];
         }
 
-        /* Handle this later */
-        ASSERT(n < MAX_INDIRECTED_BLOCK);
-        return -1;
+        else {
+            /* Handle this later (double-indirected block) */
+            ASSERT(0);
+        }
     }
+
+    return pblock;
 }
 
 struct ext4_dir_entry_2 **e4flib_get_dentries_inode(struct ext4_inode *inode, int *n_read)
