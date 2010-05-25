@@ -1,10 +1,16 @@
 #!/bin/bash
+function t0011 {
+    FUSE_MD5=$(md5sum $MOUNTPOINT/`basename $TMP_FILE` | cut -d\  -f1)
+}
+
+function t0011-check {
+    [ "$FUSE_MD5" = "$FILE_MD5" ]
+}
+
 set -e
 source `dirname $0`/lib.sh
 
-echo -n "`basename $0`: "
-
-[ -n "$SKIP_SLOW_TESTS" ] && echo SKIPPED && exit 0
+e4test_declare_slow
 
 # Make a random file, and store the md5
 TMP_FILE=`mktemp`
@@ -22,16 +28,10 @@ e4test_umount
 
 # Check the md5 after mount using fuse
 e4test_fuse_mount
-FUSE_MD5=$(md5sum $MOUNTPOINT/`basename $TMP_FILE` | cut -d\  -f1)
+e4test_run t0011
 e4test_fuse_umount
-e4test_check_log
 
 rm $FS
 rm $TMP_FILE
 
-if [ "$FUSE_MD5" = "$FILE_MD5" ]
-then
-    echo PASS
-else
-    echo FAIL
-fi
+e4test_end t0011-check

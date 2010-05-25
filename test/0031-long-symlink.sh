@@ -1,11 +1,18 @@
 #!/bin/bash
+function t0031 {
+    FUSE_MD5=`md5sum $MOUNTPOINT/link1 | cut -d\  -f1`
+}
+
+function t0031-check {
+    [ "$FUSE_MD5" = "$FILE_MD5" ]
+}
+
 set -e
 source `dirname $0`/lib.sh
 
 # Long symlinks are those that have more than 60 chars.  This is a different
 # scenario because in this case the link is not stored in the inode, but on a
 # data block.
-echo -n "`basename $0`: "
 
 # Make a random file, and store the md5
 TMP_FILE=`mktemp`
@@ -27,17 +34,10 @@ e4test_umount
 
 # Check the md5 after mount using fuse and through the link
 e4test_fuse_mount
-FUSE_MD5=`md5sum $MOUNTPOINT/link1 | cut -d\  -f1`
-[ -z "$FUSE_MD5" ] && exit 1
+e4test_run t0031
 e4test_fuse_umount
-e4test_check_log
 
 rm $FS
 rm $TMP_FILE
 
-if [ "$FUSE_MD5" = "$FILE_MD5" ]
-then
-    echo PASS
-else
-    echo FAIL
-fi
+e4test_end t0031-check
