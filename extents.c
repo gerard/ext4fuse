@@ -30,7 +30,7 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, int n_ee, uint
         if (ee[i].ee_block + ee[i].ee_len > lblock) {
             block_ext_index = i;
             block_ext_offset = lblock - ee[i].ee_block;
-            if (extent) *extent = ee[i].ee_block + ee[i].ee_len - lblock - 1;
+            if (extent) *extent = ee[i].ee_block + ee[i].ee_len - lblock;
             break;
         }
     }
