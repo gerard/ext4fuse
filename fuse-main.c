@@ -5,7 +5,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation. See README and COPYING for
  * more details.
-
+ *
  * Obviously inspired on the great FUSE hello world example:
  *      - http://fuse.sourceforge.net/helloworld.html
  */

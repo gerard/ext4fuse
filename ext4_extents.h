@@ -1,4 +1,20 @@
-/* vim: set ts=8 noexpandtab : */
+/* vim: set ts=8 :
+ *
+ * Copyright (c) 2010, Gerard Lledó Vives, gerard.lledo@gmail.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation. See README and COPYING for
+ * more details.
+ *
+ *  from
+ *
+ *  linux/fs/ext4/ext4_extents.h
+ *
+ * Copyright (c) 2003-2006, Cluster File Systems, Inc, info@clusterfs.com
+ * Written by Alex Tomas <alex@clusterfs.com>
+ */
+
 
 #ifndef EXT4_EXTENTS_H
 #define EXT4_EXTENTS_H

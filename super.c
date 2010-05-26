@@ -8,7 +8,7 @@
  */
 
 #include "common.h"
-#include "ext4.h"
+#include "ext4_super.h"
 #include "logging.h"
 #include "disk.h"
 
