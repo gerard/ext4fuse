@@ -19,7 +19,7 @@
 #ifndef EXT4_EXTENTS_H
 #define EXT4_EXTENTS_H
 
-#include "common.h"
+#include "ext4_basic.h"
 
 /*
  * ext4_inode has i_block array (60 bytes total).

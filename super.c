@@ -7,10 +7,11 @@
  * more details.
  */
 
-#include "common.h"
-#include "ext4_super.h"
-#include "logging.h"
+#include "types/ext4_super.h"
+
 #include "disk.h"
+#include "logging.h"
+#include "super.h"
 
 #define BOOT_SECTOR_SIZE            0x400
 #define GROUP_DESC_MIN_SIZE         0x20
@@ -96,7 +97,7 @@ int super_group_fill(void)
     gdesc_table = malloc(sizeof(struct ext4_group_desc) * super_n_block_groups());
 
     for (int i = 0; i < super_n_block_groups(); i++) {
-        off_t bg_off = ALIGN_TO(BOOT_SECTOR_SIZE + super_size(), super_block_size());
+        off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + super_size());
         bg_off += i * super_group_desc_size();
 
         /* disk advances super_group_desc_size(), pointer sizeof(struct...).

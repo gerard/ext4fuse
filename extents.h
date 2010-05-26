@@ -1,7 +1,7 @@
 #ifndef EXTENTS_H
 #define EXTENTS_H
 
-#include "ext4_extents.h"
+#include "types/ext4_extents.h"
 
 struct ext4_inode_extent {
     struct ext4_extent_header eh;

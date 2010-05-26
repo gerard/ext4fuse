@@ -19,14 +19,14 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "common.h"
-#include "ext4.h"
-#include "extents.h"
-#include "e4flib.h"
+#include "types/ext4.h"
+
 #include "disk.h"
+#include "e4flib.h"
+#include "extents.h"
+#include "inode.h"
 #include "logging.h"
 #include "super.h"
-#include "inode.h"
 
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 

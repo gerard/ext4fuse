@@ -11,12 +11,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
-#include "ext4.h"
-#include "super.h"
+#include "types/ext4.h"
+
 #include "disk.h"
 #include "extents.h"
 #include "logging.h"
+#include "super.h"
 
 
 #define MAX_DIRECTED_BLOCK          12

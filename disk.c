@@ -11,11 +11,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <errno.h>
+#include <pthread.h>
 
-#include "logging.h"
 #include "e4flib.h"
+#include "logging.h"
 
 static int disk_fd = -1;
 

@@ -1,10 +1,10 @@
 #ifndef E4FLIB_H
 #define E4FLIB_H
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 
 struct ext4_inode;
 struct ext4_dir_entry_2;

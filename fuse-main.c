@@ -20,13 +20,14 @@
 #include <signal.h>
 #include <execinfo.h>
 
-#include "common.h"
-#include "e4flib.h"
-#include "ops.h"
-#include "logging.h"
-#include "ext4.h"
+#include "types/ext4.h"
+
 #include "disk.h"
+#include "e4flib.h"
 #include "inode.h"
+#include "logging.h"
+#include "ops.h"
+#include "super.h"
 
 void signal_handle_sigsegv(int signal)
 {

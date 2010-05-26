@@ -25,6 +25,8 @@
  */
 
 
+#include "ext4_basic.h"
+
 /*
  * Structure of a blocks group descriptor
  */

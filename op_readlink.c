@@ -13,11 +13,13 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-#include "ext4.h"
-#include "e4flib.h"
-#include "logging.h"
+#include "types/ext4.h"
+
 #include "disk.h"
+#include "e4flib.h"
 #include "inode.h"
+#include "logging.h"
+#include "super.h"
 
 
 static int get_link_dest(struct ext4_inode *inode, char *buf)

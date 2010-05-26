@@ -27,7 +27,7 @@
 #ifndef EXT4_H
 #define EXT4_H
 
-#include "common.h"
+#include "ext4_basic.h"
 
 #define EXT4_NAME_LEN 255
 
