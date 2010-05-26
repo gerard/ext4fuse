@@ -12,6 +12,7 @@
 #include <fuse.h>
 
 #include "logging.h"
+#include "ops.h"
 #include "super.h"
 
 void *op_init(struct fuse_conn_info *info)

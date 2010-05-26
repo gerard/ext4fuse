@@ -11,17 +11,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "types/ext4.h"
-
 #include "disk.h"
 #include "extents.h"
+#include "inode.h"
 #include "logging.h"
 #include "super.h"
 
 
-#define MAX_DIRECTED_BLOCK          12
-#define INDIRECT_BLOCK_L1           12
-#define MAX_INDIRECTED_BLOCK        MAX_DIRECTED_BLOCK + (BLOCK_SIZE / sizeof(uint32_t))
+#define MAX_INDIRECTED_BLOCK        EXT4_NDIR_BLOCKS + (BLOCK_SIZE / sizeof(uint32_t))
+
 
 /* Get pblock for a given inode and lblock.  If extent is not NULL, it will
  * store the length of extent, that is, the number of consecutive pblocks
@@ -35,15 +33,15 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
         ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
         if (extent) *extent = 0;
 
-        if (lblock < MAX_DIRECTED_BLOCK) {
+        if (lblock < EXT4_NDIR_BLOCKS) {
             return inode->i_block[lblock];
         }
 
         if (lblock < MAX_INDIRECTED_BLOCK) {
             uint32_t indirect_block[BLOCK_SIZE];
-            uint32_t indirect_index = lblock - MAX_DIRECTED_BLOCK;
+            uint32_t indirect_index = lblock - EXT4_NDIR_BLOCKS;
 
-            disk_read_block(INDIRECT_BLOCK_L1, indirect_block);
+            disk_read_block(EXT4_IND_BLOCK, indirect_block);
             return indirect_block[indirect_index];
         }
 

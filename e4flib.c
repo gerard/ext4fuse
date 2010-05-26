@@ -19,8 +19,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "types/ext4.h"
-
 #include "disk.h"
 #include "e4flib.h"
 #include "extents.h"

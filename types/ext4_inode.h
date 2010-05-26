@@ -24,20 +24,11 @@
  * 
  */
 
-#ifndef EXT4_H
-#define EXT4_H
+#ifndef EXT4_INODE_H
+#define EXT4_INODE_H
 
 #include "ext4_basic.h"
 
-#define EXT4_NAME_LEN 255
-
-struct ext4_dir_entry_2 {
-    __le32  inode;          /* Inode number */
-    __le16  rec_len;        /* Directory entry length */
-    __u8    name_len;       /* Name length */
-    __u8    file_type;
-    char    name[EXT4_NAME_LEN];    /* File name */
-};
 
 #define EXT4_NDIR_BLOCKS                12
 #define EXT4_IND_BLOCK                  EXT4_NDIR_BLOCKS

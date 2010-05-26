@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+/* This should be moved somewhere else where proper directory handling is done */
+#include "types/ext4_dentry.h"
+
 struct ext4_inode;
 struct ext4_dir_entry_2;
 

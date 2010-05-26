@@ -20,8 +20,6 @@
 #include <signal.h>
 #include <execinfo.h>
 
-#include "types/ext4.h"
-
 #include "disk.h"
 #include "e4flib.h"
 #include "inode.h"

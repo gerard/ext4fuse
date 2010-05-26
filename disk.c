@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include "disk.h"
 #include "e4flib.h"
 #include "logging.h"
 
