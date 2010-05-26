@@ -18,7 +18,7 @@ function e4test_sleep {
 }
 
 function e4test_make_LOGFILE {
-    export LOGFILE="test/logs/`date +%y%m%d-%H:%M.%S`"
+    export LOGFILE="test/logs/`basename $0 | cut -d\- -f1`-`date +%y%m%d-%H:%M.%S`"
     mkdir -p `dirname $LOGFILE`
 }
 
