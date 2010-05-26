@@ -12,11 +12,11 @@ source `dirname $0`/lib.sh
 
 # Make a random file, and store the md5
 TMP_FILE=`mktemp`
-dd if=/dev/urandom of=$TMP_FILE bs=1024 count=1024 &> /dev/null
+dd if=/dev/urandom of=$TMP_FILE bs=1024 count=$((1024 * 16)) &> /dev/null
 FILE_MD5=`md5sum $TMP_FILE | cut -d\  -f1`
 
 e4test_make_LOGFILE
-e4test_make_FS 16
+e4test_make_FS 32
 e4test_make_MOUNTPOINT
 
 # Copy the file in the FS
