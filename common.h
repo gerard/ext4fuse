@@ -9,4 +9,6 @@
     __ret;                                                  \
 })
 
+#define UNUSED(__x)     ((void)(__x))
+
 #endif

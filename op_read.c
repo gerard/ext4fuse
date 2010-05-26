@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include "common.h"
 #include "disk.h"
 #include "e4flib.h"
 #include "inode.h"
@@ -66,6 +67,7 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
 int e4f_read(const char *path, char *buf, size_t size, off_t offset,
              struct fuse_file_info *fi)
 {
+    UNUSED(fi);
     struct ext4_inode *inode;
     size_t ret = 0;
     uint32_t extent_len;

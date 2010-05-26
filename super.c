@@ -83,7 +83,7 @@ int super_fill(void)
 /* FIXME: Handle bg_inode_table_hi when size > GROUP_DESC_MIN_SIZE */
 off_t super_group_inode_table_offset(uint32_t inode_num)
 {
-    int n_group = inode_num / super_inodes_per_group();
+    uint32_t n_group = inode_num / super_inodes_per_group();
     ASSERT(n_group < super_n_block_groups());
     DEBUG("Inode table offset: 0x%x", gdesc_table[n_group].bg_inode_table_lo);
     return BLOCKS2BYTES(gdesc_table[n_group].bg_inode_table_lo);
@@ -96,7 +96,7 @@ int super_group_fill(void)
 {
     gdesc_table = malloc(sizeof(struct ext4_group_desc) * super_n_block_groups());
 
-    for (int i = 0; i < super_n_block_groups(); i++) {
+    for (uint32_t i = 0; i < super_n_block_groups(); i++) {
         off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + super_size());
         bg_off += i * super_group_desc_size();
 

@@ -1,4 +1,4 @@
-CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=26 -std=gnu99 -g3 -Wall
+CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=26 -std=gnu99 -g3 -Wall -Wextra
 LDFLAGS += $(shell pkg-config fuse --libs)
 
 BINARY = ext4fuse

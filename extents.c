@@ -14,7 +14,7 @@
 #include "super.h"
 
 /* Calculates the physical block from a given logical block and extent */
-static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, int n_ee, uint32_t lblock, uint32_t *extent)
+static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock, uint32_t *extent)
 {
     uint32_t block_ext_index = 0;
     uint32_t block_ext_offset = 0;

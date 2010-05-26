@@ -20,6 +20,7 @@
 #include <signal.h>
 #include <execinfo.h>
 
+#include "common.h"
 #include "disk.h"
 #include "e4flib.h"
 #include "inode.h"
@@ -29,6 +30,7 @@
 
 void signal_handle_sigsegv(int signal)
 {
+    UNUSED(signal);
     void *array[10];
     size_t size;
     char **strings;
@@ -79,6 +81,8 @@ static int e4f_getattr(const char *path, struct stat *stbuf)
 static int e4f_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi)
 {
+    UNUSED(fi);
+    UNUSED(offset);
     struct ext4_inode *inode;
     struct ext4_dir_entry_2 **entries;
     int n_entries = 0;
@@ -106,7 +110,7 @@ static int e4f_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
 static int e4f_open(const char *path, struct fuse_file_info *fi)
 {
-    //return e4flib_lookup_path(path, NULL);
+    UNUSED(path);
     if((fi->flags & 3) != O_RDONLY)
         return -EACCES;
     return 0;

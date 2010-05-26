@@ -48,7 +48,7 @@ int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
     if (size == 0) WARNING("Read operation with 0 size");
 
     ASSERT(lseek_ret == where);
-    ASSERT(read_ret == size);
+    ASSERT((size_t)read_ret == size);
 
     return read_ret;
 }
