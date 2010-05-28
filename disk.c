@@ -7,7 +7,7 @@
  * more details.
  */
 
-
+#define _XOPEN_SOURCE 500
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -35,22 +35,19 @@ int disk_open(const char *path)
 int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
 {
     static pthread_mutex_t read_lock = PTHREAD_MUTEX_INITIALIZER;
-    ssize_t read_ret;
-    off_t lseek_ret;
+    ssize_t pread_ret;
 
     ASSERT(disk_fd >= 0);
 
     pthread_mutex_lock(&read_lock);
     DEBUG("Disk Read: 0x%jx +0x%zx [%s:%d]", where, size, func, line);
-    lseek_ret = lseek(disk_fd, where, SEEK_SET);
-    read_ret = read(disk_fd, p, size);
+    pread_ret = pread(disk_fd, p, size, where);
     pthread_mutex_unlock(&read_lock);
     if (size == 0) WARNING("Read operation with 0 size");
 
-    ASSERT(lseek_ret == where);
-    ASSERT((size_t)read_ret == size);
+    ASSERT((size_t)pread_ret == size);
 
-    return read_ret;
+    return pread_ret;
 }
 
 int disk_ctx_create(struct disk_ctx *ctx, off_t where, size_t size, uint32_t len)
