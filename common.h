@@ -10,5 +10,11 @@
 })
 
 #define UNUSED(__x)     ((void)(__x))
+#define MIN(x, y)   ({                  \
+    typeof (x) __x = (x);               \
+    typeof (y) __y = (y);               \
+    __x < __y ? __x : __y;              \
+})
+
 
 #endif

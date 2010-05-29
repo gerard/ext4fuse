@@ -13,7 +13,6 @@
 
 #include "common.h"
 #include "disk.h"
-#include "e4flib.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -68,24 +67,24 @@ int e4f_read(const char *path, char *buf, size_t size, off_t offset,
              struct fuse_file_info *fi)
 {
     UNUSED(fi);
-    struct ext4_inode *inode;
+    struct ext4_inode inode;
     size_t ret = 0;
     uint32_t extent_len;
 
     DEBUG("read(%s, buf, %jd, %zd, fi)", path, size, offset);
 
-    if (e4flib_lookup_path(path, &inode) != 0) {
+    if (inode_get_by_path(path, &inode) != 0) {
         return -1;
     }
 
-    size = truncate_size(inode, size, offset);
-    ret = first_read(inode, buf, size, offset);
+    size = truncate_size(&inode, size, offset);
+    ret = first_read(&inode, buf, size, offset);
 
     buf += ret;
     offset += ret;
 
     for (int lblock = offset / BLOCK_SIZE; size > ret; lblock += extent_len) {
-        uint64_t pblock = inode_get_data_pblock(inode, lblock, &extent_len);
+        uint64_t pblock = inode_get_data_pblock(&inode, lblock, &extent_len);
         struct disk_ctx read_ctx;
 
         ASSERT(pblock);

@@ -3,10 +3,14 @@
 
 struct fuse_conn_info;
 struct fuse_file_info;
+#include <fuse.h>
 
 int e4f_readlink(const char *path, char *buf, size_t bufsize);
 void *op_init(struct fuse_conn_info *info);
-int e4f_read(const char *path, char *buf, size_t size, off_t offset,
-                    struct fuse_file_info *fi);
+int e4f_read(const char *path, char *buf, size_t size, off_t offset
+                             , struct fuse_file_info *fi);
+int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler
+                               , off_t offset, struct fuse_file_info *fi);
+
 
 #endif

@@ -22,7 +22,6 @@
 
 #include "common.h"
 #include "disk.h"
-#include "e4flib.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -50,66 +49,35 @@ void signal_handle_sigsegv(int signal)
 
 static int e4f_getattr(const char *path, struct stat *stbuf)
 {
-    struct ext4_inode *inode;
+    struct ext4_inode inode;
     int ret = 0;
 
     DEBUG("getattr(%s)", path);
 
     memset(stbuf, 0, sizeof(struct stat));
-    ret = e4flib_lookup_path(path, &inode);
+    ret = inode_get_by_path(path, &inode);
 
     if (ret < 0) {
         return ret;
     }
 
-    ASSERT(inode);
+    DEBUG("getattr done");
 
-    stbuf->st_mode = inode->i_mode & ~0222;
-    stbuf->st_nlink = inode->i_links_count;
-    stbuf->st_size = inode->i_size_lo;
-    stbuf->st_uid = inode->i_uid;
-    stbuf->st_gid = inode->i_gid;
-    stbuf->st_atime = inode->i_atime;
-    stbuf->st_mtime = inode->i_mtime;
-    stbuf->st_ctime = inode->i_ctime;
-
-    inode_put(inode);
-
-    return 0;
-}
-
-static int e4f_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
-                       off_t offset, struct fuse_file_info *fi)
-{
-    UNUSED(fi);
-    UNUSED(offset);
-    struct ext4_inode *inode;
-    struct ext4_dir_entry_2 **entries;
-    int n_entries = 0;
-    int ret = 0;
-
-    ret = e4flib_lookup_path(path, &inode);
-    if (ret < 0) {
-        return ret;
-    }
-
-    entries = e4flib_get_dentries_inode(inode, &n_entries);
-    for (int i = 0; i < n_entries; i++) {
-        char name_buffer[EXT4_NAME_LEN];
-        e4flib_get_printable_name(name_buffer, entries[i]);
-        filler(buf, name_buffer, NULL, 0);
-    }
-
-    /* Nasty, but works... This points to the allocated data blocks */
-    free(entries[0]);
-    free(entries);
-    inode_put(inode);
+    stbuf->st_mode = inode.i_mode & ~0222;
+    stbuf->st_nlink = inode.i_links_count;
+    stbuf->st_size = inode.i_size_lo;
+    stbuf->st_uid = inode.i_uid;
+    stbuf->st_gid = inode.i_gid;
+    stbuf->st_atime = inode.i_atime;
+    stbuf->st_mtime = inode.i_mtime;
+    stbuf->st_ctime = inode.i_ctime;
 
     return 0;
 }
 
 static int e4f_open(const char *path, struct fuse_file_info *fi)
 {
+    DEBUG("open");
     UNUSED(path);
     if((fi->flags & 3) != O_RDONLY)
         return -EACCES;
@@ -118,7 +86,7 @@ static int e4f_open(const char *path, struct fuse_file_info *fi)
 
 static struct fuse_operations e4f_ops = {
     .getattr    = e4f_getattr,
-    .readdir    = e4f_readdir,
+    .readdir    = op_readdir,
     .open       = e4f_open,
     .read       = e4f_read,
     .readlink   = e4f_readlink,
@@ -142,8 +110,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    if (e4flib_initialize(argv[1]) < 0) {
-        fprintf(stderr, "Failed to initialize ext4fuse\n");
+    if (disk_open(argv[1]) < 0) {
+        perror("disk_open");
         return EXIT_FAILURE;
     }
 

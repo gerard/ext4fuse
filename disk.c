@@ -7,15 +7,16 @@
  * more details.
  */
 
+
 #define _XOPEN_SOURCE 500
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "disk.h"
-#include "e4flib.h"
 #include "logging.h"
 
 static int disk_fd = -1;
@@ -25,8 +26,7 @@ int disk_open(const char *path)
 {
     disk_fd = open(path, O_RDONLY);
     if (disk_fd < 0) {
-        perror("open");
-        return -1;
+        return -errno;
     }
 
     return 0;

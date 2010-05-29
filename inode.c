@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "disk.h"
 #include "extents.h"
@@ -19,6 +20,8 @@
 
 
 #define MAX_INDIRECTED_BLOCK        EXT4_NDIR_BLOCKS + (BLOCK_SIZE / sizeof(uint32_t))
+#define ROOT_INODE_N                2
+#define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
 
 /* Get pblock for a given inode and lblock.  If extent is not NULL, it will
@@ -57,22 +60,104 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-struct ext4_inode *inode_get(uint32_t inode_num)
+static void dir_ctx_update(struct ext4_inode *inode, uint32_t lblock, struct inode_dir_ctx *ctx)
 {
-    if (inode_num == 0) return NULL;
-    inode_num--;    /* Inode 0 doesn't exist on disk */
+    uint64_t dir_pblock = inode_get_data_pblock(inode, lblock, NULL);
+    disk_read_block(dir_pblock, ctx->buf);
+    ctx->lblock = lblock;
+}
 
-    struct ext4_inode *ret = malloc(super_inode_size());
-    memset(ret, 0, super_inode_size());
+struct inode_dir_ctx *inode_dir_ctx_get(struct ext4_inode *inode)
+{
+    struct inode_dir_ctx *ret = malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
+    dir_ctx_update(inode, 0, ret);
 
-    off_t inode_off = super_group_inode_table_offset(inode_num);
-    inode_off += (inode_num % super_inodes_per_group()) * super_inode_size();
-
-    disk_read(inode_off, super_inode_size(), ret);
     return ret;
 }
 
-void inode_put(struct ext4_inode *inode)
+void inode_dir_ctx_put(struct inode_dir_ctx *ctx)
 {
-    free(inode);
+    free(ctx);
+}
+
+struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset, struct inode_dir_ctx *ctx)
+{
+    uint32_t lblock = offset / BLOCK_SIZE;
+    uint32_t blk_offset = offset % BLOCK_SIZE;
+
+    DEBUG("%d/%d", offset, inode->i_size_lo);
+    ASSERT(inode->i_size_lo >= offset);
+    if (inode->i_size_lo == offset) {
+        return NULL;
+    }
+
+    if (lblock == ctx->lblock) {
+        return (struct ext4_dir_entry_2 *)&ctx->buf[blk_offset];
+    } else {
+        dir_ctx_update(inode, lblock, ctx);
+        return inode_dentry_get(inode, offset, ctx);
+    }
+}
+
+int inode_get_by_number(uint32_t n, struct ext4_inode *inode)
+{
+    if (n == 0) return -1;
+    n--;    /* Inode 0 doesn't exist on disk */
+
+    off_t off = super_group_inode_table_offset(n);
+    off += (n % super_inodes_per_group()) * super_inode_size();
+
+    /* If on-disk inode is ext3 type, it will be smaller than the struct.  EXT4
+     * inodes, on the other hand, are double size, but the struct still doesn't
+     * have fields for all of them. */
+    disk_read(off, MIN(super_inode_size(), sizeof(struct ext4_inode)), inode);
+    return 0;
+}
+
+static uint8_t get_path_token_len(const char *path)
+{
+    uint8_t len = 0;
+    while (path[len] != '/' && path[len]) len++;
+    return len;
+}
+
+int inode_get_by_path(const char *path, struct ext4_inode *inode)
+{
+    DEBUG("Looking up: %s", path);
+
+    if (!IS_PATH_SEPARATOR(path[0])) {
+        return -ENOENT;
+    }
+
+    inode_get_by_number(ROOT_INODE_N, inode);
+
+    do {
+        path++; /* Skip over the slash */
+        if (!*path) return 0;
+
+        uint8_t path_len = get_path_token_len(path);
+        uint32_t offset = 0;
+        struct ext4_dir_entry_2 *dentry = NULL;
+        struct inode_dir_ctx *dctx = inode_dir_ctx_get(inode);
+
+        while ((dentry = inode_dentry_get(inode, offset, dctx))) {
+            offset += dentry->rec_len;
+
+            if (!dentry->inode) continue;
+            if (path_len != dentry->name_len) continue;
+            if (memcmp(path, dentry->name, dentry->name_len)) continue;
+
+            inode_get_by_number(dentry->inode, inode);
+            DEBUG("Lookup following inode %d", dentry->inode);
+
+            break;
+        }
+        inode_dir_ctx_put(dctx);
+
+        /* Couldn't find the entry at all */
+        if (dentry == NULL) return -ENOENT;
+    } while((path = strchr(path, '/')));
+
+    return 0;
+
 }
