@@ -76,11 +76,16 @@ function e4test_mountpoint_struct_md5 {
 
 function e4test_run {
     echo -n ': '
+    TEST_TIMES=10
     TIMING_START=`date +%s%N`
-    $1
+    for i in `seq 1 $TEST_TIMES`
+    do
+        $1
+    done
     TIMING_END=`date +%s%N`
     TIMING_DIFF=$(($TIMING_END - $TIMING_START))
     TIMING_DIFF=$(($TIMING_DIFF - $TIMING_SLEEP))
+    TIMING_DIFF=$(($TIMING_DIFF / $TEST_TIMES))
     TIMING_DIFF_SECS=$((TIMING_DIFF / 1000000000))
     TIMING_DIFF_NSECS=$((TIMING_DIFF % 1000000000))
     TIMING_DIFF_MSECS=$((TIMING_DIFF_NSECS / 1000000))
