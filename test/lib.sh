@@ -48,6 +48,16 @@ function e4test_fuse_mount {
     fi
 }
 
+function e4test_fuse_mount_callgrind {
+    mkdir $MOUNTPOINT
+    if [ -z "$LOGFILE" ]
+    then
+        valgrind --tool=callgrind ./ext4fuse $FS $MOUNTPOINT
+    else
+        valgrind --tool=callgrind ./ext4fuse $FS $MOUNTPOINT $LOGFILE
+    fi
+}
+
 function e4test_umount {
     sudo umount $MOUNTPOINT
     rmdir $MOUNTPOINT
