@@ -63,8 +63,8 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
     }
 }
 
-int e4f_read(const char *path, char *buf, size_t size, off_t offset,
-             struct fuse_file_info *fi)
+int op_read(const char *path, char *buf, size_t size, off_t offset,
+            struct fuse_file_info *fi)
 {
     UNUSED(fi);
     struct ext4_inode inode;

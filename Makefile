@@ -2,8 +2,8 @@ CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=26 -std=gnu99 -g
 LDFLAGS += $(shell pkg-config fuse --libs)
 
 BINARY = ext4fuse
-SOURCES += fuse-main.o op_readlink.o op_init.o disk.o super.o inode.o
-SOURCES += logging.o extents.o op_read.o op_readdir.o
+SOURCES += fuse-main.o logging.o extents.o disk.o super.o inode.o
+SOURCES += op_read.o op_readdir.o op_readlink.o op_init.o op_getattr.o op_open.o
 
 $(BINARY): $(SOURCES)
 	$(CC) -o $@ $^ $(LDFLAGS)

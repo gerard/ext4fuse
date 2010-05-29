@@ -9,7 +9,6 @@
 
 
 #include <stdlib.h>
-#include <fuse.h>
 
 #include "logging.h"
 #include "ops.h"

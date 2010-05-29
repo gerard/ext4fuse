@@ -36,7 +36,7 @@ static int get_link_dest(struct ext4_inode *inode, char *buf)
 }
 
 /* Check return values, bufer sizes and so on; strings are nasty... */
-int e4f_readlink(const char *path, char *buf, size_t bufsize)
+int op_readlink(const char *path, char *buf, size_t bufsize)
 {
     UNUSED(bufsize);            /* FIXME */
     struct ext4_inode inode;

@@ -27,6 +27,15 @@
 #include "ops.h"
 #include "super.h"
 
+static struct fuse_operations e4f_ops = {
+    .getattr    = op_getattr,
+    .readdir    = op_readdir,
+    .open       = op_open,
+    .read       = op_read,
+    .readlink   = op_readlink,
+    .init       = op_init,
+};
+
 void signal_handle_sigsegv(int signal)
 {
     UNUSED(signal);
@@ -46,52 +55,6 @@ void signal_handle_sigsegv(int signal)
 
     abort();
 }
-
-static int e4f_getattr(const char *path, struct stat *stbuf)
-{
-    struct ext4_inode inode;
-    int ret = 0;
-
-    DEBUG("getattr(%s)", path);
-
-    memset(stbuf, 0, sizeof(struct stat));
-    ret = inode_get_by_path(path, &inode);
-
-    if (ret < 0) {
-        return ret;
-    }
-
-    DEBUG("getattr done");
-
-    stbuf->st_mode = inode.i_mode & ~0222;
-    stbuf->st_nlink = inode.i_links_count;
-    stbuf->st_size = inode.i_size_lo;
-    stbuf->st_uid = inode.i_uid;
-    stbuf->st_gid = inode.i_gid;
-    stbuf->st_atime = inode.i_atime;
-    stbuf->st_mtime = inode.i_mtime;
-    stbuf->st_ctime = inode.i_ctime;
-
-    return 0;
-}
-
-static int e4f_open(const char *path, struct fuse_file_info *fi)
-{
-    DEBUG("open");
-    UNUSED(path);
-    if((fi->flags & 3) != O_RDONLY)
-        return -EACCES;
-    return 0;
-}
-
-static struct fuse_operations e4f_ops = {
-    .getattr    = e4f_getattr,
-    .readdir    = op_readdir,
-    .open       = e4f_open,
-    .read       = e4f_read,
-    .readlink   = e4f_readlink,
-    .init       = op_init,
-};
 
 int main(int argc, char *argv[])
 {
