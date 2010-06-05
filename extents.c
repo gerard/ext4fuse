@@ -70,17 +70,22 @@ uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock,
 
     struct ext4_extent *ee_array;
     int n_entries;
+    uint64_t ret;
 
     if (inode_ext->eh.eh_depth == 0) {
         ee_array = inode_ext->ee;
         n_entries = inode_ext->eh.eh_entries;
+
+        ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
     } else {
         ASSERT(inode_ext->eh.eh_depth == 1);
         ASSERT(inode_ext->eh.eh_entries == 1);
         ASSERT(inode_ext->ei[0].ei_leaf_hi == 0);
 
         ee_array = extent_get_eentries_in_block(inode_ext->ei[0].ei_leaf_lo, &n_entries);
+        ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
+        free(ee_array);
     }
 
-    return extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
+    return ret;
 }
