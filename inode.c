@@ -10,8 +10,10 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <errno.h>
 
+#include "dcache.h"
 #include "disk.h"
 #include "extents.h"
 #include "inode.h"
@@ -121,6 +123,27 @@ static uint8_t get_path_token_len(const char *path)
     return len;
 }
 
+static struct dcache_entry *get_cached_inode_num(const char **path)
+{
+    struct dcache_entry *next = NULL;
+    struct dcache_entry *ret;
+
+    do {
+        if (**path == '/') *path = *path + 1; /* Skip over the slash */
+        uint8_t path_len = get_path_token_len(*path);
+        ret = next;
+
+        if (path_len == 0) {
+            return ret;
+        }
+
+        next = dcache_lookup(ret, *path, path_len);
+        if (next) *path += path_len;
+    } while(next != NULL);
+
+    return ret;
+}
+
 int inode_get_by_path(const char *path, struct ext4_inode *inode)
 {
     DEBUG("Looking up: %s", path);
@@ -129,15 +152,19 @@ int inode_get_by_path(const char *path, struct ext4_inode *inode)
         return -ENOENT;
     }
 
-    inode_get_by_number(ROOT_INODE_N, inode);
+    struct dcache_entry *dc_entry = get_cached_inode_num(&path);
+    inode_get_by_number(dcache_get_inode(dc_entry), inode);
+
+    DEBUG("Looking up after dcache: %s", path);
 
     do {
-        path++; /* Skip over the slash */
-        if (!*path) return 0;
-
-        uint8_t path_len = get_path_token_len(path);
         uint32_t offset = 0;
         struct ext4_dir_entry_2 *dentry = NULL;
+
+        if (*path == '/') path++;
+        uint8_t path_len = get_path_token_len(path);
+
+        if (path_len == 0) return 0;
         struct inode_dir_ctx *dctx = inode_dir_ctx_get(inode);
 
         while ((dentry = inode_dentry_get(inode, offset, dctx))) {
@@ -150,6 +177,9 @@ int inode_get_by_path(const char *path, struct ext4_inode *inode)
             inode_get_by_number(dentry->inode, inode);
             DEBUG("Lookup following inode %d", dentry->inode);
 
+            if (S_ISDIR(inode->i_mode)) {
+                dc_entry = dcache_insert(dc_entry, path, path_len, dentry->inode);
+            }
             break;
         }
         inode_dir_ctx_put(dctx);
@@ -160,4 +190,9 @@ int inode_get_by_path(const char *path, struct ext4_inode *inode)
 
     return 0;
 
+}
+
+int inode_init(void)
+{
+    return dcache_init_root(ROOT_INODE_N);
 }

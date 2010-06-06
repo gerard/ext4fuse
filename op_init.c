@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 
+#include "inode.h"
 #include "logging.h"
 #include "ops.h"
 #include "super.h"
@@ -25,6 +26,11 @@ void *op_init(struct fuse_conn_info *info)
 
     if (super_group_fill() != 0) {
         ERR("ext4fuse cannot continue");
+        abort();
+    }
+
+    if (inode_init() != 0) {
+        ERR("inode initialization failed")
         abort();
     }
 

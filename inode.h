@@ -18,4 +18,6 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset
 int inode_get_by_number(uint32_t n, struct ext4_inode *inode);
 int inode_get_by_path(const char *path, struct ext4_inode *inode);
 
+int inode_init(void);
+
 #endif
