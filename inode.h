@@ -1,6 +1,8 @@
 #ifndef INODE_H
 #define INODE_H
 
+#include <sys/types.h>
+
 #include "types/ext4_inode.h"
 #include "types/ext4_dentry.h"
 
@@ -17,6 +19,7 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset
 
 int inode_get_by_number(uint32_t n, struct ext4_inode *inode);
 int inode_get_by_path(const char *path, struct ext4_inode *inode);
+uint32_t inode_get_idx_by_path(const char *path);
 
 int inode_init(void);
 

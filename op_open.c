@@ -11,14 +11,18 @@
 #include <errno.h>
 
 #include "common.h"
+#include "inode.h"
 #include "logging.h"
 #include "ops.h"
 
 int op_open(const char *path, struct fuse_file_info *fi)
 {   
     DEBUG("open");
-    UNUSED(path);
     if((fi->flags & 3) != O_RDONLY)
         return -EACCES;
+
+    fi->fh = inode_get_idx_by_path(path);
+    DEBUG("%s is inode %d", path, fi->fh);
+
     return 0;
 }

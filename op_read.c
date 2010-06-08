@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #include "common.h"
 #include "disk.h"
@@ -66,15 +67,15 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
 int op_read(const char *path, char *buf, size_t size, off_t offset,
             struct fuse_file_info *fi)
 {
-    UNUSED(fi);
     struct ext4_inode inode;
     size_t ret = 0;
     uint32_t extent_len;
 
-    DEBUG("read(%s, buf, %jd, %zd, fi)", path, size, offset);
+    DEBUG("read(%s, buf, %jd, %zd, fi->fh=%d)", path, size, offset, fi->fh);
+    int inode_get_ret = inode_get_by_number(fi->fh, &inode);
 
-    if (inode_get_by_path(path, &inode) != 0) {
-        return -1;
+    if (inode_get_ret < 0) {
+        return inode_get_ret;
     }
 
     size = truncate_size(&inode, size, offset);
