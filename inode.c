@@ -103,7 +103,7 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset
 
 int inode_get_by_number(uint32_t n, struct ext4_inode *inode)
 {
-    if (n == 0) return -1;
+    if (n == 0) return -ENOENT;
     n--;    /* Inode 0 doesn't exist on disk */
 
     off_t off = super_group_inode_table_offset(n);
@@ -144,16 +144,24 @@ static struct dcache_entry *get_cached_inode_num(const char **path)
     return ret;
 }
 
-int inode_get_by_path(const char *path, struct ext4_inode *inode)
+static const char *skip_trailing_backslash(const char *path)
 {
+    while (IS_PATH_SEPARATOR(*path)) path++;
+    return path;
+}
+
+uint32_t inode_get_idx_by_path(const char *path)
+{
+    uint32_t inode_idx;
+    struct ext4_inode inode;
+
+    /* Paths from fuse are always absolute */
+    assert(IS_PATH_SEPARATOR(path[0]));
+
     DEBUG("Looking up: %s", path);
 
-    if (!IS_PATH_SEPARATOR(path[0])) {
-        return -ENOENT;
-    }
-
     struct dcache_entry *dc_entry = get_cached_inode_num(&path);
-    inode_get_by_number(dcache_get_inode(dc_entry), inode);
+    inode_idx = dcache_get_inode(dc_entry);
 
     DEBUG("Looking up after dcache: %s", path);
 
@@ -161,35 +169,40 @@ int inode_get_by_path(const char *path, struct ext4_inode *inode)
         uint32_t offset = 0;
         struct ext4_dir_entry_2 *dentry = NULL;
 
-        if (*path == '/') path++;
+        path = skip_trailing_backslash(path);
         uint8_t path_len = get_path_token_len(path);
 
-        if (path_len == 0) return 0;
-        struct inode_dir_ctx *dctx = inode_dir_ctx_get(inode);
+        if (path_len == 0) return inode_idx;
+        inode_get_by_number(inode_idx, &inode);
 
-        while ((dentry = inode_dentry_get(inode, offset, dctx))) {
+        struct inode_dir_ctx *dctx = inode_dir_ctx_get(&inode);
+        while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
             offset += dentry->rec_len;
 
             if (!dentry->inode) continue;
             if (path_len != dentry->name_len) continue;
             if (memcmp(path, dentry->name, dentry->name_len)) continue;
 
-            inode_get_by_number(dentry->inode, inode);
-            DEBUG("Lookup following inode %d", dentry->inode);
+            inode_idx = dentry->inode;
+            DEBUG("Lookup following inode %d", inode_idx);
 
-            if (S_ISDIR(inode->i_mode)) {
-                dc_entry = dcache_insert(dc_entry, path, path_len, dentry->inode);
+            if (S_ISDIR(inode.i_mode)) {
+                dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
         }
         inode_dir_ctx_put(dctx);
 
         /* Couldn't find the entry at all */
-        if (dentry == NULL) return -ENOENT;
+        if (dentry == NULL) return 0;
     } while((path = strchr(path, '/')));
 
-    return 0;
+    return inode_idx;
+}
 
+int inode_get_by_path(const char *path, struct ext4_inode *inode)
+{
+    return inode_get_by_number(inode_get_idx_by_path(path), inode);
 }
 
 int inode_init(void)
