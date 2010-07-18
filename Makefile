@@ -1,5 +1,10 @@
 CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=26 -std=gnu99 -g3 -Wall -Wextra
 LDFLAGS += $(shell pkg-config fuse --libs)
+OS = $(shell uname)
+
+ifeq ($(OS), Darwin)
+CFLAGS  += -mmacosx-version-min=10.5
+endif
 
 BINARY = ext4fuse
 SOURCES += fuse-main.o logging.o extents.o disk.o super.o inode.o dcache.o
