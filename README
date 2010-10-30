@@ -19,7 +19,10 @@ besides me.
 
 === Usage ===
 Compile using "make".  You can mount a filesystem like this:
-$ ./ext4fuse /dev/sda1 mountpoint [optional-logfile]
+$ ./ext4fuse /dev/disk0s5 mountpoint [optional-logfile]
+
+You might need to mount a different device depending on how are your partitions
+organized.  If you don't know, take a look the Mac Disk Utility.
 
 At least on Leopard, you need to add your user to the operator group so you can
 have readonly permissions to the disks.  Use this:
