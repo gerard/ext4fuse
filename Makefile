@@ -12,6 +12,11 @@ CFLAGS  += -mmacosx-version-min=10.5
 CFLAGS  += -D_FILE_OFFSET_BITS=64
 endif
 
+ifeq ($(shell uname), FreeBSD)
+CFLAGS  += -I/usr/local/include -L/usr/local/lib
+LDFLAGS += -lexecinfo
+endif
+
 BINARY = ext4fuse
 SOURCES += fuse-main.o logging.o extents.o disk.o super.o inode.o dcache.o
 SOURCES += op_read.o op_readdir.o op_readlink.o op_init.o op_getattr.o op_open.o
