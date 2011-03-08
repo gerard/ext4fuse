@@ -34,10 +34,14 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
             break;
         }
     }
-    ASSERT(n_ee != i);
 
-    DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
-    return ee[block_ext_index].ee_start_lo + block_ext_offset;
+    if (n_ee == i) {
+        DEBUG("Extent [%d] doesn't contain block", block_ext_index);
+        return 0;
+    } else {
+        DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
+        return ee[block_ext_index].ee_start_lo + block_ext_offset;
+    }
 }
 
 /* Fetches a block that stores extent info and returns an array of extents */
@@ -79,13 +83,18 @@ uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock,
         ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
     } else {
         ASSERT(inode_ext->eh.eh_depth == 1);
-        ASSERT(inode_ext->eh.eh_entries == 1);
-        ASSERT(inode_ext->ei[0].ei_leaf_hi == 0);
 
-        ee_array = extent_get_eentries_in_block(inode_ext->ei[0].ei_leaf_lo, &n_entries);
-        ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
-        free(ee_array);
+        for (int i = 0; i < inode_ext->eh.eh_entries; i++) {
+            ASSERT(inode_ext->ei[i].ei_leaf_hi == 0);
+
+            ee_array = extent_get_eentries_in_block(inode_ext->ei[i].ei_leaf_lo, &n_entries);
+            ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
+            free(ee_array);
+
+            if (ret) break;
+        }
     }
 
+    ASSERT(ret);
     return ret;
 }
