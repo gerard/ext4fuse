@@ -34,6 +34,43 @@ int disk_open(const char *path)
 
 int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
 {
+/*
+ * This is a very nasty temporary hack to work with FreeBSD
+ * The original code has been made to read from a block device,
+ * FreeBSD instead export devices as character devices, thus they
+ * cannot be read unaligned.
+ *
+ * FIXME: Add a layer for read ahead so the same block doesn't get
+ * read several times. This current implementation is __VERY__
+ * inefficient!!
+ */
+#ifdef __FreeBSD__
+    static pthread_mutex_t read_lock = PTHREAD_MUTEX_INITIALIZER;
+    ssize_t pread_ret;
+    unsigned char *fakeread;
+    div_t div_b,div_c;
+    int nblocks;
+
+    div_b = div(where, 1024);
+    div_c = div(size, 1024);
+
+    nblocks = (div_c.rem == 0) ? div_c.quot : div_c.quot + 1;
+    fakeread = (unsigned char *) malloc(1024*nblocks);
+
+    ASSERT(disk_fd >= 0);
+
+    pthread_mutex_lock(&read_lock);
+    DEBUG("Disk Read: 0x%jx +0x%zx [%s:%d]", where, size, func, line);
+    DEBUG("           0x%jx +0x%zx", where - div_b.rem, div_b.rem);
+    pread_ret = pread(disk_fd, fakeread, nblocks*1024, where - div_b.rem);
+    pthread_mutex_unlock(&read_lock);
+    memcpy(p, &fakeread[div_b.rem], size);
+    if (size == 0) WARNING("Read operation with 0 size");
+
+    ASSERT((size_t)pread_ret >= size);
+
+    return size;
+#else
     static pthread_mutex_t read_lock = PTHREAD_MUTEX_INITIALIZER;
     ssize_t pread_ret;
 
@@ -48,6 +85,8 @@ int __disk_read(off_t where, size_t size, void *p, const char *func, int line)
     ASSERT((size_t)pread_ret == size);
 
     return pread_ret;
+#endif
+
 }
 
 int disk_ctx_create(struct disk_ctx *ctx, off_t where, size_t size, uint32_t len)
