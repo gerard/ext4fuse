@@ -71,7 +71,7 @@ int op_read(const char *path, char *buf, size_t size, off_t offset,
     size_t ret = 0;
     uint32_t extent_len;
 
-    DEBUG("read(%s, buf, %jd, %zd, fi->fh=%d)", path, size, offset, fi->fh);
+    DEBUG("read(%s, buf, %zd, %zd, fi->fh=%d)", path, size, offset, fi->fh);
     int inode_get_ret = inode_get_by_number(fi->fh, &inode);
 
     if (inode_get_ret < 0) {
@@ -86,15 +86,21 @@ int op_read(const char *path, char *buf, size_t size, off_t offset,
 
     for (int lblock = offset / BLOCK_SIZE; size > ret; lblock += extent_len) {
         uint64_t pblock = inode_get_data_pblock(&inode, lblock, &extent_len);
-        struct disk_ctx read_ctx;
+        size_t bytes;
 
-        ASSERT(pblock);
+        if (pblock) {
+            struct disk_ctx read_ctx;
 
-        disk_ctx_create(&read_ctx, BLOCKS2BYTES(pblock), BLOCK_SIZE, extent_len);
-        ret += disk_ctx_read(&read_ctx, size - ret, buf);
+            disk_ctx_create(&read_ctx, BLOCKS2BYTES(pblock), BLOCK_SIZE, extent_len);
+            bytes = disk_ctx_read(&read_ctx, size - ret, buf);
+        } else {
+            bytes = BLOCK_SIZE;
+            memset(buf,0,bytes);
+            DEBUG("sparse file, skipping %d bytes",bytes);
+        }
+        ret += bytes;
+        buf += bytes;
         DEBUG("Read %zd/%zd bytes from %d consecutive blocks", ret, size, extent_len);
-
-        buf += ret;
     }
 
     /* We always read as many bytes as requested (after initial truncation) */

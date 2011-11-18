@@ -95,6 +95,5 @@ uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock,
         }
     }
 
-    ASSERT(ret);
     return ret;
 }
