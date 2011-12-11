@@ -24,9 +24,9 @@ e4test_mount
 
 dd if=/dev/urandom of=$MOUNTPOINT/filler bs=1024 count=64 &> /dev/null
 for x in `seq 1 106`; do
-	cp $MOUNTPOINT/filler $MOUNTPOINT/filler.$x
+	cp $MOUNTPOINT/filler $MOUNTPOINT/filler.$x &> /dev/null || break
 done
-for x in `seq 2 2 32`; do
+for x in `seq 2 2 48`; do
 	rm $MOUNTPOINT/filler.$x
 done
 
