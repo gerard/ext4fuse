@@ -1,9 +1,15 @@
+ifeq ($(shell [ -d /usr/local/include/osxfuse ] && echo osxfuse),osxfuse)
+CFLAGS  += -I/usr/local/include/osxfuse
+LDFLAGS += -lfuse
+else
 ifeq ($(shell which pkg-config), )
 $(error You need to install pkg-config in order to compile this sources)
 endif
-
-CFLAGS  += $(shell pkg-config fuse --cflags) -DFUSE_USE_VERSION=26 -std=gnu99 -g3 -Wall -Wextra
+CFLAGS  += $(shell pkg-config fuse --cflags)
 LDFLAGS += $(shell pkg-config fuse --libs)
+endif
+
+CFLAGS  += -DFUSE_USE_VERSION=26 -std=gnu99 -g3 -Wall -Wextra
 
 ifeq ($(shell uname), Darwin)
 CFLAGS  += -mmacosx-version-min=10.5
