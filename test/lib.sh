@@ -44,7 +44,7 @@ function e4test_fuse_mount {
     then
         ./ext4fuse $FS $MOUNTPOINT
     else
-        ./ext4fuse $FS $MOUNTPOINT $LOGFILE
+        ./ext4fuse $FS $MOUNTPOINT -o logfile=$LOGFILE
     fi
 }
 
@@ -54,7 +54,7 @@ function e4test_fuse_mount_callgrind {
     then
         valgrind --tool=callgrind ./ext4fuse $FS $MOUNTPOINT
     else
-        valgrind --tool=callgrind ./ext4fuse $FS $MOUNTPOINT $LOGFILE
+        valgrind --tool=callgrind ./ext4fuse $FS $MOUNTPOINT -o logfile=$LOGFILE
     fi
 }
 
