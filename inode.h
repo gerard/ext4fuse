@@ -11,7 +11,7 @@ struct inode_dir_ctx {
     uint8_t buf[];
 };
 
-uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent);
+uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);
 
 struct inode_dir_ctx *inode_dir_ctx_get();
 void inode_dir_ctx_put(struct inode_dir_ctx *);

@@ -14,7 +14,7 @@
 #include "super.h"
 
 /* Calculates the physical block from a given logical block and extent */
-static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock, uint32_t *extent)
+static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock, uint32_t *len)
 {
     uint32_t block_ext_index = 0;
     uint32_t block_ext_offset = 0;
@@ -30,7 +30,7 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
         if (ee[i].ee_block + ee[i].ee_len > lblock) {
             block_ext_index = i;
             block_ext_offset = lblock - ee[i].ee_block;
-            if (extent) *extent = ee[i].ee_block + ee[i].ee_len - lblock;
+            if (len) *len = ee[i].ee_block + ee[i].ee_len - lblock;
             break;
         }
     }
@@ -44,49 +44,47 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
     }
 }
 
-/* Fetches a block that stores extent info and returns an array of extents */
-static struct ext4_extent *extent_get_eentries_in_block(uint32_t block, int *n_entries)
+/* Fetches a block that stores extent info and returns an array of extents
+ * _with_ its header. */
+static void *extent_get_extents_in_block(uint32_t block)
 {
-    struct ext4_extent_header ext_h;
-    struct ext4_extent *exts;
+    struct ext4_extent_header eh;
+    void *exts;
 
-    disk_read(BLOCKS2BYTES(block), sizeof(struct ext4_extent_header), &ext_h);
-    ASSERT(ext_h.eh_depth == 0);
+    disk_read(BLOCKS2BYTES(block), sizeof(struct ext4_extent_header), &eh);
 
-    uint32_t extents_length = ext_h.eh_entries * sizeof(struct ext4_extent);
-    exts = malloc(extents_length);
+    uint32_t extents_len = eh.eh_entries * sizeof(struct ext4_extent)
+                                         + sizeof(struct ext4_extent_header);
 
-    uint64_t where = BLOCKS2BYTES(block) + sizeof(struct ext4_extent);
-    disk_read(where, extents_length, exts);
+    exts = malloc(extents_len);
 
-    if (n_entries) *n_entries = ext_h.eh_entries;
+    disk_read(BLOCKS2BYTES(block), extents_len, exts);
+
     return exts;
 }
 
 /* Returns the physical block number */
-uint64_t extent_get_pblock(void *inode_extents, uint32_t lblock, uint32_t *extent)
+uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len)
 {
-    struct ext4_extent_header *eh = inode_extents;
+    struct ext4_extent_header *eh = extents;
     struct ext4_extent *ee_array;
-    int n_entries;
     uint64_t ret;
 
     ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
 
     if (eh->eh_depth == 0) {
-        ee_array = inode_extents + sizeof(struct ext4_extent_header);
-        ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, extent);
+        ee_array = extents + sizeof(struct ext4_extent_header);
+        ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, len);
     } else {
-        ASSERT(eh->eh_depth == 1);
+        struct ext4_extent_idx *ei_array = extents + sizeof(struct ext4_extent_header);
 
-        struct ext4_extent_idx *ei_array = inode_extents + sizeof(struct ext4_extent_header);
         for (int i = 0; i < eh->eh_entries; i++) {
-            ei_array = inode_extents + sizeof(struct ext4_extent_header);
+            ei_array = extents + sizeof(struct ext4_extent_header);
             ASSERT(ei_array[i].ei_leaf_hi == 0);
 
-            ee_array = extent_get_eentries_in_block(ei_array[i].ei_leaf_lo, &n_entries);
-            ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
-            free(ee_array);
+            void *leaf_extents = extent_get_extents_in_block(ei_array[i].ei_leaf_lo);
+            ret = extent_get_pblock(leaf_extents, lblock, len);
+            free(leaf_extents);
 
             if (ret) break;
         }
