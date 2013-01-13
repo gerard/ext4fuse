@@ -64,30 +64,27 @@ static struct ext4_extent *extent_get_eentries_in_block(uint32_t block, int *n_e
 }
 
 /* Returns the physical block number */
-uint64_t extent_get_pblock(struct ext4_inode_extent *inode_ext, uint32_t lblock, uint32_t *extent)
+uint64_t extent_get_pblock(void *inode_extents, uint32_t lblock, uint32_t *extent)
 {
-    ASSERT(inode_ext->eh.eh_magic == EXT4_EXT_MAGIC);
-    ASSERT(inode_ext->eh.eh_entries <= 4);
-
-    /* This should be a static assert */
-    ASSERT(sizeof(struct ext4_inode_extent) == 60);
-
+    struct ext4_extent_header *eh = inode_extents;
     struct ext4_extent *ee_array;
     int n_entries;
     uint64_t ret;
 
-    if (inode_ext->eh.eh_depth == 0) {
-        ee_array = inode_ext->ee;
-        n_entries = inode_ext->eh.eh_entries;
+    ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
 
-        ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
+    if (eh->eh_depth == 0) {
+        ee_array = inode_extents + sizeof(struct ext4_extent_header);
+        ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, extent);
     } else {
-        ASSERT(inode_ext->eh.eh_depth == 1);
+        ASSERT(eh->eh_depth == 1);
 
-        for (int i = 0; i < inode_ext->eh.eh_entries; i++) {
-            ASSERT(inode_ext->ei[i].ei_leaf_hi == 0);
+        struct ext4_extent_idx *ei_array = inode_extents + sizeof(struct ext4_extent_header);
+        for (int i = 0; i < eh->eh_entries; i++) {
+            ei_array = inode_extents + sizeof(struct ext4_extent_header);
+            ASSERT(ei_array[i].ei_leaf_hi == 0);
 
-            ee_array = extent_get_eentries_in_block(inode_ext->ei[i].ei_leaf_lo, &n_entries);
+            ee_array = extent_get_eentries_in_block(ei_array[i].ei_leaf_lo, &n_entries);
             ret = extent_get_block_from_ees(ee_array, n_entries, lblock, extent);
             free(ee_array);
 

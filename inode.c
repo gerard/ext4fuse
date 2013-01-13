@@ -34,8 +34,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     if (extent) *extent = 1;
 
     if (inode->i_flags & EXT4_EXTENTS_FL) {
-        struct ext4_inode_extent *inode_ext = (struct ext4_inode_extent *)&inode->i_block;
-        return extent_get_pblock(inode_ext, lblock, extent);
+        return extent_get_pblock(&inode->i_block, lblock, extent);
     } else {
         ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
 
