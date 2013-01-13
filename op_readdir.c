@@ -43,10 +43,17 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     dctx = inode_dir_ctx_get(&inode);
     while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
-        get_printable_name(name_buf, dentry);
         offset += dentry->rec_len;
 
+        if (!dentry->inode) {
+            /* It seems that is possible to have a dummy entry like this at the
+             * begining of a block of dentries.  Looks like skipping is the
+             * reasonable thing to do. */
+            continue;
+        }
+
         /* Providing offset to the filler function seems slower... */
+        get_printable_name(name_buf, dentry);
         if (name_buf[0]) {
             if (filler(buf, name_buf, NULL, offset) != 0) break;
         }
