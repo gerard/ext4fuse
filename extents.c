@@ -77,17 +77,24 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len)
         ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, len);
     } else {
         struct ext4_extent_idx *ei_array = extents + sizeof(struct ext4_extent_header);
+        struct ext4_extent_idx *recurse_ei = NULL;
 
         for (int i = 0; i < eh->eh_entries; i++) {
             ei_array = extents + sizeof(struct ext4_extent_header);
             ASSERT(ei_array[i].ei_leaf_hi == 0);
 
-            void *leaf_extents = extent_get_extents_in_block(ei_array[i].ei_leaf_lo);
-            ret = extent_get_pblock(leaf_extents, lblock, len);
-            free(leaf_extents);
+            if (ei_array[i].ei_block > lblock) {
+                break;
+            }
 
-            if (ret) break;
+            recurse_ei = &ei_array[i];
         }
+
+        ASSERT(recurse_ei);
+
+        void *leaf_extents = extent_get_extents_in_block(recurse_ei->ei_leaf_lo);
+        ret = extent_get_pblock(leaf_extents, lblock, len);
+        free(leaf_extents);
     }
 
     return ret;
