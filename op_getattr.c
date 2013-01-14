@@ -33,7 +33,7 @@ int op_getattr(const char *path, struct stat *stbuf)
 
     stbuf->st_mode = inode.i_mode & ~0222;
     stbuf->st_nlink = inode.i_links_count;
-    stbuf->st_size = inode.i_size_lo;
+    stbuf->st_size = inode_get_size(&inode);
     stbuf->st_blocks = inode.i_blocks_lo;
     stbuf->st_uid = inode.i_uid;
     stbuf->st_gid = inode.i_gid;

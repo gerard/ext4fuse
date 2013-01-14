@@ -23,16 +23,18 @@
 
 static int get_link_dest(struct ext4_inode *inode, char *buf)
 {
-    if (inode->i_size_lo <= 60) {
+    uint64_t inode_size = inode_get_size(inode);
+
+    if (inode_size <= 60) {
         /* Link destination fits in inode */
-        memcpy(buf, inode->i_block, inode->i_size_lo);
+        memcpy(buf, inode->i_block, inode_size);
     } else {
         uint64_t pblock = inode_get_data_pblock(inode, 0, NULL);
         disk_read_block(pblock, (uint8_t *)buf);
     }
 
-    buf[inode->i_size_lo] = 0;
-    return inode->i_size_lo + 1;
+    buf[inode_size] = 0;
+    return inode_size + 1;
 }
 
 /* Check return values, bufer sizes and so on; strings are nasty... */

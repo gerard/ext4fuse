@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "dcache.h"
 #include "disk.h"
@@ -36,7 +37,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         return extent_get_pblock(&inode->i_block, lblock, extent_len);
     } else {
-        ASSERT(lblock <= BYTES2BLOCKS(inode->i_size_lo));
+        ASSERT(lblock <= BYTES2BLOCKS(inode_get_size(inode)));
 
         if (lblock < EXT4_NDIR_BLOCKS) {
             return inode->i_block[lblock];
@@ -85,10 +86,12 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset
 {
     uint32_t lblock = offset / BLOCK_SIZE;
     uint32_t blk_offset = offset % BLOCK_SIZE;
+    uint64_t inode_size = inode_get_size(inode);
+    size_t un_offset = (size_t)offset;
 
-    DEBUG("%d/%d", offset, inode->i_size_lo);
-    ASSERT(inode->i_size_lo >= offset);
-    if (inode->i_size_lo == offset) {
+    DEBUG("%zd/%"PRIu64"", un_offset, inode_size);
+    ASSERT(inode_size >= un_offset);
+    if (inode_size == un_offset) {
         return NULL;
     }
 
@@ -96,7 +99,7 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset
         return (struct ext4_dir_entry_2 *)&ctx->buf[blk_offset];
     } else {
         dir_ctx_update(inode, lblock, ctx);
-        return inode_dentry_get(inode, offset, ctx);
+        return inode_dentry_get(inode, un_offset, ctx);
     }
 }
 

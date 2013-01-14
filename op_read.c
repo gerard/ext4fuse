@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "common.h"
 #include "disk.h"
@@ -20,17 +21,19 @@
 
 
 /* We truncate the read size if it exceeds the limits of the file. */
-static size_t truncate_size(struct ext4_inode *inode, size_t size, off_t offset)
+static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset)
 {
-    DEBUG("Truncate? %zd/%d", offset + size, inode->i_size_lo);
+    uint64_t inode_size = inode_get_size(inode);
 
-    if (offset >= inode->i_size_lo) {
+    DEBUG("Truncate? %zd/%d", offset + size, inode_size);
+
+    if (offset >= inode_size) {
         return 0;
     }
 
-    if ((offset + size) >= inode->i_size_lo) {
-        DEBUG("Truncating read(2) to %d bytes", inode->i_size_lo);
-        return inode->i_size_lo - offset;
+    if ((offset + size) >= inode_size) {
+        DEBUG("Truncating read(2) to %"PRIu64" bytes", inode_size);
+        return inode_size - offset;
     }
 
     return size;
@@ -67,24 +70,28 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
 int op_read(const char *path, char *buf, size_t size, off_t offset,
             struct fuse_file_info *fi)
 {
+    size_t un_offset = (size_t)offset;
     struct ext4_inode inode;
     size_t ret = 0;
     uint32_t extent_len;
 
-    DEBUG("read(%s, buf, %zd, %zd, fi->fh=%d)", path, size, offset, fi->fh);
+    /* Not sure if this is possible at all... */
+    ASSERT(offset >= 0);
+
+    DEBUG("read(%s, buf, %zd, %zd, fi->fh=%d)", path, size, un_offset, fi->fh);
     int inode_get_ret = inode_get_by_number(fi->fh, &inode);
 
     if (inode_get_ret < 0) {
         return inode_get_ret;
     }
 
-    size = truncate_size(&inode, size, offset);
-    ret = first_read(&inode, buf, size, offset);
+    size = truncate_size(&inode, size, un_offset);
+    ret = first_read(&inode, buf, size, un_offset);
 
     buf += ret;
-    offset += ret;
+    un_offset += ret;
 
-    for (int lblock = offset / BLOCK_SIZE; size > ret; lblock += extent_len) {
+    for (unsigned int lblock = un_offset / BLOCK_SIZE; size > ret; lblock += extent_len) {
         uint64_t pblock = inode_get_data_pblock(&inode, lblock, &extent_len);
         size_t bytes;
 
