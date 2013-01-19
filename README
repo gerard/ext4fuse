@@ -31,7 +31,7 @@ load automatically, but then again, I have nearly zero experience with FreeBSD.
 
 === Getting started: Compiling from source ===
 If you prefer bleeding edge, get the source, untar it and compile using:
-$ make".
+$ make
 
 You need to have pkg-config for the compilation to work as well as the FUSE
 kernel module.  For OSX you should use fuse4x (notice that fuse4x is also
