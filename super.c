@@ -14,7 +14,6 @@
 #include "logging.h"
 #include "super.h"
 
-#define BOOT_SECTOR_SIZE            0x400
 #define GROUP_DESC_MIN_SIZE         0x20
 
 static struct ext4_super_block *super;
@@ -43,11 +42,6 @@ static uint32_t super_group_desc_size(void)
     else return sizeof(struct ext4_group_desc);
 }
 
-static uint16_t super_magic(void)
-{
-    return super->s_magic;
-}
-
 uint32_t super_block_size(void) {
     return ((uint64_t)1) << (super->s_log_block_size + 10);
 }
@@ -67,11 +61,6 @@ int super_fill(void)
 {
     super = malloc(super_size());
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), super);
-
-    if (super_magic() != 0xEF53) {
-        ERR("Partition doesn't contain EXT4 filesystem");
-        return -1;
-    }
 
     INFO("BLOCK SIZE: %i", super_block_size());
     INFO("BLOCK GROUP SIZE: %i", super_block_group_size());

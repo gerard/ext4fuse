@@ -28,6 +28,8 @@
 #include "ops.h"
 #include "super.h"
 
+#include "types/ext4_super.h"
+
 static struct fuse_operations e4f_ops = {
     .getattr    = op_getattr,
     .readdir    = op_readdir,
@@ -119,6 +121,18 @@ int main(int argc, char *argv[])
     if (disk_open(e4f.disk) < 0) {
         fprintf(stderr, "disk_open: %s: %s\n", e4f.disk,
                 strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    off_t disk_magic_offset = BOOT_SECTOR_SIZE + offsetof(struct ext4_super_block, s_magic);
+    uint16_t disk_magic;
+    if (disk_read(disk_magic_offset, sizeof(disk_magic), &disk_magic) < 0) {
+        fprintf(stderr, "Failed to read disk: %s\n",  e4f.disk);
+        return EXIT_FAILURE;
+    }
+
+    if (disk_magic != 0xEF53) {
+        fprintf(stderr, "Partition doesn't contain EXT4 filesystem\n");
         return EXIT_FAILURE;
     }
 

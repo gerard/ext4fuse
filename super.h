@@ -14,6 +14,9 @@
 #define MALLOC_BLOCKS(__blks)                   (malloc(BLOCKS2BYTES(__blks)))
 #define ALIGN_TO_BLOCKSIZE(__n)                 (ALIGN_TO(__n, BLOCK_SIZE))
 
+#define BOOT_SECTOR_SIZE            0x400
+
+
 /* struct ext4_super */
 uint32_t super_block_size(void);
 uint32_t super_inodes_per_group(void);
