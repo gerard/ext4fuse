@@ -1,3 +1,5 @@
+MKE2FS=`which mke2fs || echo /sbin/mke2fs`
+
 function e4test_init {
     echo -n `basename $0`
     TIMING_SLEEP=0
@@ -28,9 +30,14 @@ function e4test_make_MOUNTPOINT {
 }
 
 function e4test_make_FS {
+    if test ! -f $MKE2FS
+    then
+        echo ": SKIPPED (no mke2fs binary found)"
+        exit 0
+    fi
     export FS=`mktemp /tmp/ext4fuse-test.XXXXXXXX`
     dd if=/dev/zero of=$FS bs=$((1024 * 1024)) count=$1 &> /dev/null
-    mke2fs -F -t ext4 $FS &> /dev/null
+    $MKE2FS -F -t ext4 $FS &> /dev/null
 }
 
 function e4test_mount {
