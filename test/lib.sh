@@ -59,12 +59,18 @@ function e4test_fuse_mount_callgrind {
 }
 
 function e4test_umount {
-    sudo umount $MOUNTPOINT
+    while ! sudo umount $MOUNTPOINT 2> /dev/null
+    do
+        sleep .1
+    done
     rmdir $MOUNTPOINT
 }
 
 function e4test_fuse_umount {
-    fusermount -u $MOUNTPOINT
+    while ! fusermount -u $MOUNTPOINT 2> /dev/null
+    do
+        sleep .1
+    done
     sleep 0.2           # Dirty hack: sometimes rmdir comes to fast...
     rmdir $MOUNTPOINT
 }
