@@ -31,7 +31,6 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     UNUSED(fi);
     char name_buf[EXT4_NAME_LEN];
     struct ext4_dir_entry_2 *dentry = NULL;
-    struct inode_dir_ctx *dctx = NULL;
     struct ext4_inode inode;
 
     /* We can use inode_get_by_number, but first we need to implement opendir */
@@ -41,7 +40,8 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         return ret;
     }
 
-    dctx = inode_dir_ctx_get(&inode);
+    struct inode_dir_ctx *dctx = inode_dir_ctx_get();
+    inode_dir_ctx_reset(dctx, &inode);
     while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
         offset += dentry->rec_len;
 

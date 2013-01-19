@@ -69,12 +69,14 @@ static void dir_ctx_update(struct ext4_inode *inode, uint32_t lblock, struct ino
     ctx->lblock = lblock;
 }
 
-struct inode_dir_ctx *inode_dir_ctx_get(struct ext4_inode *inode)
+struct inode_dir_ctx *inode_dir_ctx_get(void)
 {
-    struct inode_dir_ctx *ret = malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
-    dir_ctx_update(inode, 0, ret);
+    return malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
+}
 
-    return ret;
+void inode_dir_ctx_reset(struct inode_dir_ctx *ctx, struct ext4_inode *inode)
+{
+    dir_ctx_update(inode, 0, ctx);
 }
 
 void inode_dir_ctx_put(struct inode_dir_ctx *ctx)
@@ -154,7 +156,8 @@ static const char *skip_trailing_backslash(const char *path)
 
 uint32_t inode_get_idx_by_path(const char *path)
 {
-    uint32_t inode_idx;
+    struct inode_dir_ctx *dctx = inode_dir_ctx_get();
+    uint32_t inode_idx = 0;
     struct ext4_inode inode;
 
     /* Paths from fuse are always absolute */
@@ -174,10 +177,10 @@ uint32_t inode_get_idx_by_path(const char *path)
         path = skip_trailing_backslash(path);
         uint8_t path_len = get_path_token_len(path);
 
-        if (path_len == 0) return inode_idx;
+        if (path_len == 0) break;
         inode_get_by_number(inode_idx, &inode);
 
-        struct inode_dir_ctx *dctx = inode_dir_ctx_get(&inode);
+        inode_dir_ctx_reset(dctx, &inode);
         while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
             offset += dentry->rec_len;
 
@@ -193,12 +196,14 @@ uint32_t inode_get_idx_by_path(const char *path)
             }
             break;
         }
-        inode_dir_ctx_put(dctx);
 
         /* Couldn't find the entry at all */
-        if (dentry == NULL) return 0;
+        if (dentry == NULL) {
+            break;
+        }
     } while((path = strchr(path, '/')));
 
+    inode_dir_ctx_put(dctx);
     return inode_idx;
 }
 
