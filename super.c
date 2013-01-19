@@ -16,51 +16,45 @@
 
 #define GROUP_DESC_MIN_SIZE         0x20
 
-static struct ext4_super_block *super;
+static struct ext4_super_block super;
 static struct ext4_group_desc *gdesc_table;
 
 
-static uint32_t super_size(void)
-{
-    return sizeof(struct ext4_super_block);
-}
-
 static uint64_t super_block_group_size(void)
 {   
-    return BLOCKS2BYTES(super->s_blocks_per_group);
+    return BLOCKS2BYTES(super.s_blocks_per_group);
 }
 
 static uint32_t super_n_block_groups(void)
 {
-    uint32_t n = super->s_blocks_count_lo / super->s_blocks_per_group;
+    uint32_t n = super.s_blocks_count_lo / super.s_blocks_per_group;
     return n ? n : 1;
 }
 
 static uint32_t super_group_desc_size(void)
 {
-    if (!super->s_desc_size) return GROUP_DESC_MIN_SIZE;
+    if (!super.s_desc_size) return GROUP_DESC_MIN_SIZE;
     else return sizeof(struct ext4_group_desc);
 }
 
 uint32_t super_block_size(void) {
-    return ((uint64_t)1) << (super->s_log_block_size + 10);
+    return ((uint64_t)1) << (super.s_log_block_size + 10);
 }
 
 uint32_t super_inodes_per_group(void)
 {
-    return super->s_inodes_per_group;
+    return super.s_inodes_per_group;
 }
 
 uint32_t super_inode_size(void)
 {
-    return super->s_inode_size;
+    return super.s_inode_size;
 }
 
 
 int super_fill(void)
 {
-    super = malloc(super_size());
-    disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), super);
+    disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &super);
 
     INFO("BLOCK SIZE: %i", super_block_size());
     INFO("BLOCK GROUP SIZE: %i", super_block_group_size());
@@ -88,7 +82,7 @@ int super_group_fill(void)
     gdesc_table = malloc(sizeof(struct ext4_group_desc) * super_n_block_groups());
 
     for (uint32_t i = 0; i < super_n_block_groups(); i++) {
-        off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + super_size());
+        off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
         bg_off += i * super_group_desc_size();
 
         /* disk advances super_group_desc_size(), pointer sizeof(struct...).
