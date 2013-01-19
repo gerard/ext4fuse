@@ -60,6 +60,5 @@ int logging_open(const char *path)
         return -1;
     }
 
-    setbuf(logfile, NULL);
     return 0;
 }
