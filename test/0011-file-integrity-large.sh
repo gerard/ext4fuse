@@ -10,8 +10,6 @@ function t0011-check {
 set -e
 source `dirname $0`/lib.sh
 
-e4test_declare_slow
-
 e4test_make_LOGFILE
 e4test_make_FS 1024
 e4test_make_MOUNTPOINT
