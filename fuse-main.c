@@ -30,6 +30,11 @@
 
 #include "types/ext4_super.h"
 
+#ifndef EXT4FUSE_VERSION
+#define EXT4FUSE_VERSION    ext4fuse_unknown_version
+#endif
+
+
 static struct fuse_operations e4f_ops = {
     .getattr    = op_getattr,
     .readdir    = op_readdir,
@@ -109,6 +114,7 @@ int main(int argc, char *argv[])
     }
 
     if (!e4f.disk) {
+        fprintf(stderr, "Version: %s\n", EXT4FUSE_VERSION);
         fprintf(stderr, "Usage: %s <disk> <mountpoint>\n", argv[0]);
         exit(1);
     }
