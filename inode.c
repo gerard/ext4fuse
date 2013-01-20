@@ -57,7 +57,7 @@ static uint32_t __inode_get_data_pblock_tind(uint32_t lblock, uint32_t tindex_bl
     ASSERT(lblock < ADDRESSES_IN_TIND_BLOCK);
 
     uint32_t dindex_block_offset_in_tindex = (lblock / ADDRESSES_IN_DIND_BLOCK) * sizeof(uint32_t);
-    lblock %= lblock % ADDRESSES_IN_DIND_BLOCK;
+    lblock %= ADDRESSES_IN_DIND_BLOCK;
 
     uint32_t dindex_block = disk_read_u32(BLOCKS2BYTES(tindex_block) + dindex_block_offset_in_tindex);
 
@@ -85,7 +85,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
             uint32_t dindex_block = inode->i_block[EXT4_DIND_BLOCK];
             return __inode_get_data_pblock_dind(lblock - MAX_IND_BLOCK, dindex_block);
         } else if (lblock < MAX_TIND_BLOCK) {
-            uint32_t tindex_block = inode->i_block[EXT4_IND_BLOCK];
+            uint32_t tindex_block = inode->i_block[EXT4_TIND_BLOCK];
             return __inode_get_data_pblock_tind(lblock - MAX_DIND_BLOCK, tindex_block);
         } else {
             /* File-system corruption? */
