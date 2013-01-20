@@ -1,6 +1,11 @@
 MKE2FS=`which mke2fs || echo /sbin/mke2fs`
 DEBUGFS=`which debugfs || echo /sbin/debugfs`
 
+# Default to ext4
+MKE2FS_TYPE=ext4
+[ -n "$TEST_MKE2FS_USE_EXT2" ] && MKE2FS_TYPE=ext2
+[ -n "$TEST_MKE2FS_USE_EXT3" ] && MKE2FS_TYPE=ext3
+
 function e4test_init {
     echo -n `basename $0`
     TIMING_SLEEP=0
@@ -38,7 +43,7 @@ function e4test_make_FS {
     fi
     export FS=`mktemp /tmp/ext4fuse-test.XXXXXXXX`
     dd if=/dev/zero of=$FS bs=$((1024 * 1024)) count=$1 &> /dev/null
-    $MKE2FS -F -t ext4 $FS &> /dev/null
+    $MKE2FS -F -t $MKE2FS_TYPE $FS &> /dev/null
 }
 
 function e4test_mount {
