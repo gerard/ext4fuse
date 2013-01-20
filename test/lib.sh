@@ -43,7 +43,7 @@ function e4test_make_FS {
     fi
     export FS=`mktemp /tmp/ext4fuse-test.XXXXXXXX`
     dd if=/dev/zero of=$FS bs=$((1024 * 1024)) count=$1 &> /dev/null
-    $MKE2FS -F -t $MKE2FS_TYPE $FS &> /dev/null
+    $MKE2FS $MKE2FS_EXTRA_OPTIONS -F -t $MKE2FS_TYPE $FS &> /dev/null
 }
 
 function e4test_mount {
