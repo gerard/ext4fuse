@@ -127,7 +127,7 @@ function e4test_end {
         fi
     fi
 
-    if grep ASSERT $LOGFILE ; then
+    if test -n "$LOGFILE" && grep ASSERT $LOGFILE ; then
         echo FAIL
         return 1
     fi
