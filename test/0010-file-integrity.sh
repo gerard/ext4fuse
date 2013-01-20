@@ -17,14 +17,12 @@ FILE_MD5=`md5sum $TMP_FILE | cut -d\  -f1`
 
 e4test_make_LOGFILE
 e4test_make_FS 32
-e4test_make_MOUNTPOINT
 
-# Copy the file in the FS
-e4test_mount
-cp $TMP_FILE $MOUNTPOINT
-e4test_umount
+# Copy the file to the FS
+e4test_debugfs_write $TMP_FILE
 
 # Check the md5 after mount using fuse
+e4test_make_MOUNTPOINT
 e4test_fuse_mount
 e4test_run t0010
 e4test_fuse_umount

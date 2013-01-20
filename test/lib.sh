@@ -1,4 +1,5 @@
 MKE2FS=`which mke2fs || echo /sbin/mke2fs`
+DEBUGFS=`which debugfs || echo /sbin/debugfs`
 
 function e4test_init {
     echo -n `basename $0`
@@ -43,6 +44,19 @@ function e4test_make_FS {
 function e4test_mount {
     mkdir $MOUNTPOINT
     sudo mount -o loop -t ext4 $FS $MOUNTPOINT
+}
+
+function __e4test_debugfs_precheck {
+    if test ! -f $DEBUGFS
+    then
+        echo ": SKIPPED (no debugfs binary found)"
+        exit 0
+    fi
+}
+
+function e4test_debugfs_write {
+    __e4test_debugfs_precheck
+    $DEBUGFS -w $FS -R "write $1 `basename $1`" &> /dev/null
 }
 
 function e4test_fuse_mount {
