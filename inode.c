@@ -47,7 +47,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
             uint32_t indirect_block[BLOCK_SIZE];
             uint32_t indirect_index = lblock - EXT4_NDIR_BLOCKS;
 
-            disk_read_block(EXT4_IND_BLOCK, indirect_block);
+            disk_read_block(inode->i_block[EXT4_IND_BLOCK], indirect_block);
             return indirect_block[indirect_index];
         }
 
