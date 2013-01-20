@@ -35,5 +35,6 @@ e4test_fuse_umount
 
 rm $FS
 rm $TMP_FILE
+rm $TMP_FILE.rnd
 
 e4test_end t0014-check
