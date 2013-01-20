@@ -22,10 +22,47 @@
 #include "super.h"
 
 
-#define MAX_INDIRECTED_BLOCK        EXT4_NDIR_BLOCKS + (BLOCK_SIZE / sizeof(uint32_t))
+/* These #defines are only relevant for ext2/3 style block indexing */
+#define ADDRESSES_IN_IND_BLOCK      (BLOCK_SIZE / sizeof(uint32_t))
+#define ADDRESSES_IN_DIND_BLOCK     (ADDRESSES_IN_IND_BLOCK * ADDRESSES_IN_IND_BLOCK)
+#define ADDRESSES_IN_TIND_BLOCK     (ADDRESSES_IN_DIND_BLOCK * ADDRESSES_IN_IND_BLOCK)
+#define MAX_IND_BLOCK               (EXT4_NDIR_BLOCKS + ADDRESSES_IN_IND_BLOCK)
+#define MAX_DIND_BLOCK              (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
+#define MAX_TIND_BLOCK              (MAX_IND_BLOCK + MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
+
 #define ROOT_INODE_N                2
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
+
+static uint32_t __inode_get_data_pblock_ind(uint32_t lblock, uint32_t index_block)
+{
+    ASSERT(lblock < ADDRESSES_IN_IND_BLOCK);
+    return disk_read_u32(BLOCKS2BYTES(index_block) + lblock * sizeof(uint32_t));
+}
+
+static uint32_t __inode_get_data_pblock_dind(uint32_t lblock, uint32_t dindex_block)
+{
+    ASSERT(lblock < ADDRESSES_IN_DIND_BLOCK);
+
+    uint32_t index_block_offset_in_dindex = (lblock / ADDRESSES_IN_IND_BLOCK) * sizeof(uint32_t);
+    lblock %= ADDRESSES_IN_IND_BLOCK;
+
+    uint32_t index_block = disk_read_u32(BLOCKS2BYTES(dindex_block) + index_block_offset_in_dindex);
+
+    return __inode_get_data_pblock_ind(lblock, index_block);
+}
+
+static uint32_t __inode_get_data_pblock_tind(uint32_t lblock, uint32_t tindex_block)
+{
+    ASSERT(lblock < ADDRESSES_IN_TIND_BLOCK);
+
+    uint32_t dindex_block_offset_in_tindex = (lblock / ADDRESSES_IN_DIND_BLOCK) * sizeof(uint32_t);
+    lblock %= lblock % ADDRESSES_IN_DIND_BLOCK;
+
+    uint32_t dindex_block = disk_read_u32(BLOCKS2BYTES(tindex_block) + dindex_block_offset_in_tindex);
+
+    return __inode_get_data_pblock_dind(lblock, dindex_block);
+}
 
 /* Get pblock for a given inode and lblock.  If extent is not NULL, it will
  * store the length of extent, that is, the number of consecutive pblocks
@@ -41,18 +78,17 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
 
         if (lblock < EXT4_NDIR_BLOCKS) {
             return inode->i_block[lblock];
-        }
-
-        if (lblock < MAX_INDIRECTED_BLOCK) {
-            uint32_t indirect_block[BLOCK_SIZE];
-            uint32_t indirect_index = lblock - EXT4_NDIR_BLOCKS;
-
-            disk_read_block(inode->i_block[EXT4_IND_BLOCK], indirect_block);
-            return indirect_block[indirect_index];
-        }
-
-        else {
-            /* Handle this later (double-indirected block) */
+        } else if (lblock < MAX_IND_BLOCK) {
+            uint32_t index_block = inode->i_block[EXT4_IND_BLOCK];
+            return __inode_get_data_pblock_ind(lblock - EXT4_NDIR_BLOCKS, index_block);
+        } else if (lblock < MAX_DIND_BLOCK) {
+            uint32_t dindex_block = inode->i_block[EXT4_DIND_BLOCK];
+            return __inode_get_data_pblock_dind(lblock - MAX_IND_BLOCK, dindex_block);
+        } else if (lblock < MAX_TIND_BLOCK) {
+            uint32_t tindex_block = inode->i_block[EXT4_IND_BLOCK];
+            return __inode_get_data_pblock_tind(lblock - MAX_DIND_BLOCK, tindex_block);
+        } else {
+            /* File-system corruption? */
             ASSERT(0);
         }
     }
