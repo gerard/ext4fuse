@@ -1,4 +1,5 @@
-=== ext4fuse ===
+ext4fuse 
+======
 This is a read-only implementation of ext4 for FUSE.  The main reason this
 exists is to be able to read linux partitions from OSX.  However, it should
 work on top of any FUSE implementation.  Linux and FreeBSD have been tested to
@@ -8,57 +9,64 @@ Write support will only come if I get the time, knowledge, patience and nerve
 to support it.  Most of them I lack, so it's a long shot.  However, the fact
 that ext4fuse is read-only also means that it's completely safe to use.
 
-=== Getting started: OS X ===
-If you use OS X I suggest you rely on the homebrew project:
- * http://mxcl.github.com/homebrew/
+##Installation
+### OS X 
+If you use OS X I suggest you rely on the [homebrew project](http://mxcl.github.com/homebrew/).
 
 Once you have homebrew installed, simply type:
-$ brew install ext4fuse
+
+`$ brew install ext4fuse`
 
 At least on Leopard, you need to add your user to the operator group so you can
 have readonly permissions to the disks.  Use this:
-$ sudo dscl . append /Groups/operator GroupMembership <your-user>
+
+`$ sudo dscl . append /Groups/operator GroupMembership <your-user>`
 
 Also, you will need to know the <device> name of your ext4 partition.  Take a
-look at the Mac Disk Utility.  It should be something _like_ /dev/disk0s5.
+look at the Mac Disk Utility.  It should be something _like_ `/dev/disk0s5`.
 
-=== Getting started: FreeBSD ===
+### FreeBSD 
 Simply install it through the ports tree:
-$ cd /usr/ports/sysutils/fusefs-ext4fuse && make install clean
+
+`$ cd /usr/ports/sysutils/fusefs-ext4fuse && make install clean`
 
 Remember that you need the fuse module loaded.  In my experience it doesn't
 load automatically, but then again, I have nearly zero experience with FreeBSD.
 
-=== Getting started: Compiling from source ===
+### Compiling from source
 If you prefer bleeding edge, get the source, untar it and compile using:
-$ make
+
+`$ make`
 
 or in case you are on FreeBSD:
-$ gmake
+
+`$ gmake`
 
 You need to have pkg-config for the compilation to work as well as the FUSE
 kernel module.  For OSX you should use fuse4x (notice that fuse4x is also
-available via brew install).
+available via `brew install`).
 
-=== Mounting ===
+## Mounting 
 You can mount a filesystem like this:
-$ ext4fuse <device> <mountpoint>
 
-If you compiled from source, and you haven't manually installed ext4fuse in
+`$ ext4fuse <device> <mountpoint>`
+
+If you compiled from source, and you haven't manually installed `ext4fuse` in
 your $PATH, go to the directory where you did the compilation and run this
-$ ./ext4fuse <device> <mountpoint>
+
+`$ ./ext4fuse <device> <mountpoint>`
 
 The <device> should be the partition device and the <mountpoint> is the
 directory where you want to mount your partition.
 
-=== Reporting bugs ===
-If you notice a problem, please fill a bug report:
-  * http://github.com/gerard/ext4fuse/issues
+## Reporting bugs 
+If you notice a problem, please file a [bug report](http://github.com/gerard/ext4fuse/issues).
 
 If you have a reproducible problem the easiest for debugging is to share the
 filesystem.  First of all, umount the partition, then you can create a backup
 like this:
-$ dd if=<device> bs=64K | gzip -c > filesystem.backup.gz
+
+`$ dd if=<device> bs=64K | gzip -c > filesystem.backup.gz`
 
 Then, just upload the .gz file somewhere.
 
@@ -67,7 +75,8 @@ case you can also generate a log file.  Notice that the log file still contains
 the directory listings.
 
 To get a logfile, you can run ext4fuse like this:
-$ ext4fuse <device> <mountpoint> -o logfile=/dev/stdout
+
+`$ ext4fuse <device> <mountpoint> -o logfile=/dev/stdout`
 
 If you do not want to share the logfile, another option is to provide a
 backtrace with gdb or a coredump (a coredump might contain file data).
@@ -75,7 +84,7 @@ backtrace with gdb or a coredump (a coredump might contain file data).
 Finally, you can always drop a mail:
   * gerard.lledo@gmail.com
 
-=== Limitations ===
+## Limitations
  * All code is religiously Little Endian only.  If you don't know what this
    means, you are probably OK (ie, you are using an intel or amd cpu).  The
    code should be better tested on x86-64, you should not be using anything
