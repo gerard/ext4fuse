@@ -235,6 +235,7 @@ uint32_t inode_get_idx_by_path(const char *path)
 
         /* Couldn't find the entry at all */
         if (dentry == NULL) {
+            inode_idx = 0;
             break;
         }
     } while((path = strchr(path, '/')));
