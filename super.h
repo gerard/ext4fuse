@@ -7,12 +7,12 @@
 
 #include "common.h"
 
-#define BLOCK_SIZE                              (super_block_size())
+#define BLOCK_SIZE                              ((size_t)super_block_size())
 #define BLOCKS2BYTES(__blks)                    (((uint64_t)(__blks)) * BLOCK_SIZE)
 #define BYTES2BLOCKS(__bytes)                   ((__bytes) / BLOCK_SIZE + ((__bytes) % BLOCK_SIZE ? 1 : 0))
 
 #define MALLOC_BLOCKS(__blks)                   (malloc(BLOCKS2BYTES(__blks)))
-#define ALIGN_TO_BLOCKSIZE(__n)                 (ALIGN_TO(__n, BLOCK_SIZE))
+#define ALIGN_TO_BLOCKSIZE(__n)                 (ALIGN_TO((size_t)__n, BLOCK_SIZE))
 
 #define BOOT_SECTOR_SIZE            0x400
 
