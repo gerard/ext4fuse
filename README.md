@@ -13,7 +13,11 @@ that ext4fuse is read-only also means that it's completely safe to use.
 ### OS X 
 If you use OS X I suggest you rely on the [homebrew project](http://mxcl.github.com/homebrew/).
 
-Once you have homebrew installed, simply type:
+Once you have homebrew installed, simply type the following three commands:
+
+`$ brew tap homebrew/fuse`
+
+`$ brew install Caskroom/cask/osxfuse`
 
 `$ brew install ext4fuse`
 
