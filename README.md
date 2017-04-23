@@ -9,7 +9,7 @@ Write support will only come if I get the time, knowledge, patience and nerve
 to support it.  Most of them I lack, so it's a long shot.  However, the fact
 that ext4fuse is read-only also means that it's completely safe to use.
 
-##Installation
+## Installation
 ### OS X 
 If you use OS X I suggest you rely on the [homebrew project](http://mxcl.github.com/homebrew/).
 
