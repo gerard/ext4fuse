@@ -63,6 +63,8 @@ your $PATH, go to the directory where you did the compilation and run this
 The <device> should be the partition device and the <mountpoint> is the
 directory where you want to mount your partition.
 
+> On macOS Sierra (10.12) or later, when mounting a filesystem with `sudo`, you need to add the option `-o allow_other` to allow non-root accounts access to the mount. See [this issue](https://github.com/gerard/ext4fuse/issues/36) for details.
+
 ## Reporting bugs 
 If you notice a problem, please file a [bug report](http://github.com/gerard/ext4fuse/issues).
 
