@@ -15,9 +15,7 @@ If you use OS X I suggest you rely on the [homebrew project](http://mxcl.github.
 
 Once you have homebrew installed, simply type the following three commands:
 
-`$ brew tap homebrew/fuse`
-
-`$ brew install Caskroom/cask/osxfuse`
+`$ brew cask install osxfuse`
 
 `$ brew install ext4fuse`
 
