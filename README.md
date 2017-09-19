@@ -24,7 +24,7 @@ have readonly permissions to the disks.  Use this:
 
 `$ sudo dscl . append /Groups/operator GroupMembership <your-user>`
 
-Also, you will need to know the <device> name of your ext4 partition.  Take a
+Also, you will need to know the \<device> name of your ext4 partition.  Take a
 look at the Mac Disk Utility.  It should be something _like_ `/dev/disk0s5`.
 
 ### FreeBSD 
@@ -58,7 +58,7 @@ your $PATH, go to the directory where you did the compilation and run this
 
 `$ ./ext4fuse <device> <mountpoint>`
 
-The <device> should be the partition device and the <mountpoint> is the
+The \<device> should be the partition device and the \<mountpoint> is the
 directory where you want to mount your partition.
 
 > On macOS Sierra (10.12) or later, when mounting a filesystem with `sudo`, you need to add the option `-o allow_other` to allow non-root accounts access to the mount. See [this issue](https://github.com/gerard/ext4fuse/issues/36) for details.
