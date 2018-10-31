@@ -1,10 +1,14 @@
 #!/bin/bash
+
+UNEVEN_BYTES=1048577
+
 function t0014 {
     FUSE_MD5=$(md5sum $MOUNTPOINT/`basename $TMP_FILE` | cut -d\  -f1)
+    FUSE_BYTES=$(cat $MOUNTPOINT/`basename $TMP_FILE.uneven` | wc -c)
 }
 
 function t0014-check {
-    [ "$FUSE_MD5" = "$FILE_MD5" ]
+    [ "$FUSE_MD5" = "$FILE_MD5" -a "$FUSE_BYTES" = "$UNEVEN_BYTES" ]
 }
 
 set -e
@@ -21,14 +25,19 @@ e4test_make_LOGFILE
 e4test_make_FS 2
 e4test_make_MOUNTPOINT
 
-# Recreate the same sparse file on the target fs
 e4test_mount
+
+# Test A: recreate the same sparse file on the target fs
 NEWTMP=$MOUNTPOINT/`basename $TMP_FILE`
 dd if=/dev/zero of=$NEWTMP bs=1024 seek=1024 count=0 &> /dev/null
 dd if=$TMP_FILE.rnd of=$NEWTMP bs=1024 seek=512 conv=notrunc &> /dev/null
+
+# Test B: create a fully sparse file whose length is not block-aligned
+truncate -s $UNEVEN_BYTES $MOUNTPOINT/`basename $TMP_FILE`.uneven
+
 e4test_umount
 
-# Check the md5 after mount using fuse
+# Check the md5 (test A) and byte count (test B) after mount using fuse
 e4test_fuse_mount
 e4test_run t0014
 e4test_fuse_umount
