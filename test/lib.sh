@@ -49,6 +49,7 @@ function e4test_make_FS {
 function e4test_mount {
     mkdir $MOUNTPOINT
     sudo mount -o loop -t ext4 $FS $MOUNTPOINT
+    sudo chown $USER $MOUNTPOINT
 }
 
 function __e4test_debugfs_precheck {
