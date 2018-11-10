@@ -101,7 +101,10 @@ int op_read(const char *path, char *buf, size_t size, off_t offset,
             disk_ctx_create(&read_ctx, BLOCKS2BYTES(pblock), BLOCK_SIZE, extent_len);
             bytes = disk_ctx_read(&read_ctx, size - ret, buf);
         } else {
-            bytes = BLOCK_SIZE;
+            bytes = size - ret;
+            if (bytes > BLOCK_SIZE) {
+                bytes = BLOCK_SIZE;
+            }
             memset(buf,0,bytes);
             DEBUG("sparse file, skipping %d bytes",bytes);
         }
