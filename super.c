@@ -27,7 +27,7 @@ static uint64_t super_block_group_size(void)
 
 static uint32_t super_n_block_groups(void)
 {
-    uint32_t n = super.s_blocks_count_lo / super.s_blocks_per_group;
+    uint32_t n = (super.s_blocks_count_lo + super.s_blocks_per_group - 1) / super.s_blocks_per_group;
     return n ? n : 1;
 }
 
