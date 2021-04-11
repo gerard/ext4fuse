@@ -15,7 +15,7 @@ If you use OS X I suggest you rely on the [homebrew project](http://mxcl.github.
 
 Once you have homebrew installed, simply type the following two commands:
 
-`$ brew cask install osxfuse`
+`$ brew install --cask osxfuse`
 
 `$ brew install ext4fuse`
 
